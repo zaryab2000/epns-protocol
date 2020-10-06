@@ -103,18 +103,8 @@ function App() {
 
   return (
     <div className="App">
-      {/* ✏️ Edit the header and change the title to your project name */}
       <Header />
 
-      {/*
-        ⚙️ Here is an example button that sets the purpose in your smart contract:
-
-        <Button onClick={()=>{
-        writeContracts.YourContract.setPurpose("🐖 Don't hog the block!")
-      }}>Set Purpose</Button>
-      */}
-
-       {/* 👨‍💼 Your account is in the top right with a wallet at connect options */}
       <div style={{ position: "fixed", textAlign: "right", right: 0, top: 0, padding: 10 }}>
         <Account
           address={address}
@@ -128,14 +118,6 @@ function App() {
         />
       </div>
 
-      {/*
-          🎛 this scaffolding is full of commonly used components
-          this <Contract/> component will automatically parse your ABI
-          and give you a form to interact with it locally
-      */}
-
-      {/*<Contract name="EPNS" signer={userProvider.getSigner()} provider={localProvider} address={address} />*/}
-      {/*<Contract name="EPNSCore" signer={userProvider.getSigner()} provider={localProvider} address={address}/>*/}
       <Contract
         name="EPNSCore"
         signer={userProvider.getSigner()}
@@ -143,6 +125,23 @@ function App() {
         contractOverride={{ EPNSCore: "EPNSProxy" }}
       />
 
+      <Contract
+          name="EPNS"
+          signer={userProvider.getSigner()}
+          provider={localProvider}
+      />
+
+      <Contract
+          name="Timelock"
+          signer={userProvider.getSigner()}
+          provider={localProvider}
+      />
+
+      <Contract
+          name="GovernorAlpha"
+          signer={userProvider.getSigner()}
+          provider={localProvider}
+      />
 
       {/* 🗺 Extra UI like gas price, eth price, faucet, and support: */}
        <div style={{ position: "fixed", textAlign: "left", left: 0, bottom: 20, padding: 10 }}>

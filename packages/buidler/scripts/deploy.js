@@ -56,18 +56,31 @@ async function main() {
   // await autoDeploy();
   // OR
   // custom deploy (to use deployed addresses dynamically for example:)
-  // const epns = await deploy("EPNS");
+
+  const admin = '0xA1bFBd2062f298a46f3E4160C89BEDa0716a3F51'; //admin of timelock, gets handed over to the governor.
+  const AAVE_LENDING_POOL = '0xA1bFBd2062f298a46f3E4160C89BEDa0716a3F51';
+  const DAI = '0xA1bFBd2062f298a46f3E4160C89BEDa0716a3F51';
+  const ADAI = '0xA1bFBd2062f298a46f3E4160C89BEDa0716a3F51';
+  const referralCode = 0;
+  const delay = 0; // uint for the timelock delay
+
+  const epns = await deploy("EPNS");
   const core = await deploy("EPNSCore");
-  // const coreSetupTx = await tx(core.address, 'initliaze()')
-  // const timeLock = await deploy("Timelock", []); // governor and a guardian,
+
+  const timelock = await deploy("Timelock", [admin, delay]); // governor and a guardian,
   // const setupDetails = '0x'
 
   let logic = core.address;
-  let governance = '0xA1bFBd2062f298a46f3E4160C89BEDa0716a3F51';
-  let AAVE_LENDING_POOL = '0xA1bFBd2062f298a46f3E4160C89BEDa0716a3F51';
-  let DAI = '0xA1bFBd2062f298a46f3E4160C89BEDa0716a3F51';
-  let ADAI = '0xA1bFBd2062f298a46f3E4160C89BEDa0716a3F51';
-  let referralCode = 0;
+  let governance = timelock.address;
+
+
+  // const Mock = await deploy('EPNSProxyMock');
+
+  const governorAlpha = await deploy("GovernorAlpha", [
+    governance,
+    epns.address,
+    admin,
+  ]);
   const coreProxy = await deploy("EPNSProxy", [
     logic,
     governance,
@@ -77,9 +90,6 @@ async function main() {
     referralCode,
   ]);
 
-  // const Mock = await deploy('EPNSProxyMock');
-
-  // const governorAlpha = await deploy("GovernorAlpha", [timeLock.address, epns.address, '0xA1bFBd2062f298a46f3E4160C89BEDa0716a3F51']);
 }
 
 main()

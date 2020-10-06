@@ -49,7 +49,7 @@ interface ILendingPool {
 
 interface IEPNSCore {}
 
-contract EPNSCore is Initializable, ReentrancyGuard  {
+contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
     using SafeMath for uint;
     using SafeERC20 for IERC20;
 
@@ -124,12 +124,6 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
         // Read more in the repo: https://github.com/ethereum-push-notification-system
         mapping(address => uint) memberLastUpdate;
     }
-
-    /* Create for testnet strict owner only channel whitelist
-     * Will not be available on mainnet since that has real defi involed, use staging contract
-     * for developers looking to try on hand
-    */
-    mapping(address => bool) channelizationWhitelist;
 
     // To keep track of channels
     mapping(address => Channel) public channels;
@@ -208,67 +202,6 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
     event Donation(address indexed donator, uint amt);
     event Withdrawal(address indexed to, address token, uint amount);
 
-    /* ***************
-    * INITIALIZER,
-    *************** */
-
-    function initialize(
-        address _governance,
-        address _lendingPoolProviderAddress,
-        address _daiAddress,
-        address _aDaiAddress,
-        uint _referralCode
-    ) public initializer returns (bool success) {
-
-
-        // setup addresses
-        governance = _governance; // multisig/timelock, also controls the proxy
-        lendingPoolProviderAddress = _lendingPoolProviderAddress;
-        daiAddress = _daiAddress;
-        aDaiAddress = _aDaiAddress;
-        REFERRAL_CODE = _referralCode;
-
-
-        UPDATE_CHANNEL_POOL_CONTRIBUTION = 500 * 10 ** 18; // 500 DAI or above to update the channel
-        DELEGATED_CONTRACT_FEES = 1 * 10 ** 17; // 0.1 DAI to perform any delegate call
-
-        ADD_CHANNEL_MIN_POOL_CONTRIBUTION = 50; // 50 DAI or above to create the channel
-        ADD_CHANNEL_MAX_POOL_CONTRIBUTION = 500 * 50 * 10 ** 18; // 500 DAI or below, we don't want channel to make a costly mistake as well, for test it's 25k
-
-        EPNS_FIRST_MESSAGE_HASH = "3+QmZbff755tAPZ22REdF5PDLLjtbRUKu2THaXSZ7pkRf2qV";
-        groupLastUpdate = block.number;
-        groupNormalizedWeight = ADJUST_FOR_FLOAT; // Always Starts with 1 * ADJUST FOR FLOAT
-
-        ADJUST_FOR_FLOAT = 10 ** 7; // TODO: checkout dsmath
-        channelsCount = 0;
-        usersCount = 0;
-
-        // Helper for calculating fair share of pool, group are all channels, renamed to avoid confusion
-        groupNormalizedWeight = 0;
-        groupHistoricalZ = 0; // Abbre
-        groupLastUpdate = 0; // The last update block number, used to calculate fair share
-        groupFairShareCount = 0; // They are alias to channels count but seperating them for brevity
-
-        /*
-        For maintaining the #DeFi finances
-        */
-        poolFunds = 0; // Always in DAI
-        ownerDaiFunds = 0;
-
-        // Add EPNS Channels
-        // First is for all users
-        // Second is all channel alerter, amount deposited for both is 0
-        // to save gas, emit both the events out
-        emit AddChannel(0x0000000000000000000000000000000000000000, "QmTCKYL2HRbwD6nGNvFLe4wPvDNuaYGr6RiVeCvWjVpn5s");
-        emit AddChannel(governance, "QmSbRT16JVF922yAB26YxWFD6DmGsnSHm8VBrGUQnXTS74");
-
-        // Also, call the EPNSServer contract to which the server is listening, will be removed after alpha
-        // Create Channel
-        _createChannel(0x0000000000000000000000000000000000000000, ChannelType.NonInterestBearing, 0);
-        _createChannel(governance, ChannelType.NonInterestBearing, 0); // should the owner of the contract be the channel? should it be governance in this case?
-        success = true;
-    }
-
     receive() external payable {}
 
     fallback() external {
@@ -279,12 +212,6 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
 
     modifier onlyGov() {
         require (msg.sender == governance, "EPNSCore::onlyGov, user is not governance");
-        _;
-    }
-
-    /// @dev Testnet only function to check permission from owner
-    modifier onlyChannelizationWhitelist(address _addr) {
-        require ((msg.sender == governance || channelizationWhitelist[_addr] == true), "User not in Channelization Whitelist");
         _;
     }
 
@@ -342,16 +269,6 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
         governance = _newGovernance;
     }
 
-    /// @dev Testnet only function to enable owner permission for channelizationWhitelist addition
-    function addToChannelizationWhitelist(address _addr) external onlyGov {
-        channelizationWhitelist[_addr] = true;
-    }
-
-    /// @dev Testnet only function  to enable owner permission for channelizationWhitelist removal
-    function removeFromChannelizationWhitelist(address _addr) external onlyGov {
-        channelizationWhitelist[_addr] = false;
-    }
-
     /// @dev Performs action by the user themself to broadcast their public key
     function broadcastUserPublicKey(bytes calldata _publicKey) external {
         // Will save gas
@@ -366,7 +283,7 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
 
     /// @dev Create channel with fees and public key
     function createChannelWithFeesAndPublicKey(bytes calldata _identity, bytes calldata _publickey)
-        external onlyUserWithNoChannel onlyChannelizationWhitelist(msg.sender) {
+        external onlyUserWithNoChannel {
         // Save gas, Emit the event out
         emit AddChannel(msg.sender, _identity);
 
@@ -383,7 +300,7 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
     }
 
     /// @dev Create channel with fees
-    function createChannelWithFees(bytes calldata _identity) external onlyUserWithNoChannel onlyChannelizationWhitelist(msg.sender) {
+    function createChannelWithFees(bytes calldata _identity) external onlyUserWithNoChannel {
         // Save gas, Emit the event out
         emit AddChannel(msg.sender, _identity);
 
