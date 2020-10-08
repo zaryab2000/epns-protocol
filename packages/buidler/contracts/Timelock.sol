@@ -7,7 +7,6 @@
 */
 
 pragma solidity >=0.6.0 <0.7.0;
-
 // From https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/math/Math.sol
 // Subject to the MIT license.
 
@@ -285,7 +284,6 @@ contract Timelock {
         } else {
             callData = abi.encodePacked(bytes4(keccak256(bytes(signature))), data);
         }
-
         // solium-disable-next-line security/no-call-value
         (bool success, bytes memory returnData) = target.call.value(value)(callData);
         require(success, "Timelock::executeTransaction: Transaction execution reverted.");
