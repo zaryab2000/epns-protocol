@@ -19,7 +19,8 @@ let EPNSProxy;
 let TIMELOCK;
 let ADMIN;
 let ALICE;
-let BOB
+let BOB;
+let ADMIN_OVERRIDE = '';
 
 let coder = new ethers.utils.AbiCoder();
 

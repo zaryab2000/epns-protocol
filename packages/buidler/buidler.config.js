@@ -3,6 +3,7 @@ const { utils } = require("ethers");
 const fs = require("fs");
 
 usePlugin("@nomiclabs/buidler-waffle");
+usePlugin("@nomiclabs/buidler-etherscan");
 
 const { isAddress, getAddress, formatUnits, parseUnits } = utils;
 
@@ -18,7 +19,7 @@ const { isAddress, getAddress, formatUnits, parseUnits } = utils;
 //
 // Select the network you want to deploy to here:
 //
-const defaultNetwork = "localhost";
+const defaultNetwork = "ropsten";
 
 function mnemonic() {
   try {
@@ -48,13 +49,19 @@ module.exports = {
       */
     },
     rinkeby: {
-      url: "https://rinkeby.infura.io/v3/c954231486fa42ccb6d132b406483d14",//<---- YOUR INFURA ID! (or it won't work)
+      url: "https://rinkeby.infura.io/v3/55ff6a94e665489384d0245fc6edc3fa",//<---- YOUR INFURA ID! (or it won't work)
+      accounts: {
+        mnemonic: mnemonic(),
+      },
+    },
+    ropsten: {
+      url: "https://ropsten.infura.io/v3/55ff6a94e665489384d0245fc6edc3fa",//<---- YOUR INFURA ID! (or it won't work)
       accounts: {
         mnemonic: mnemonic(),
       },
     },
     mainnet: {
-      url: "https://mainnet.infura.io/v3/c954231486fa42ccb6d132b406483d14",//<---- YOUR INFURA ID! (or it won't work)
+      url: "https://mainnet.infura.io/v3/55ff6a94e665489384d0245fc6edc3fa",//<---- YOUR INFURA ID! (or it won't work)
       accounts: {
         mnemonic: mnemonic(),
       },
@@ -66,6 +73,11 @@ module.exports = {
         mnemonic: mnemonic(),
       },
     },
+  },
+  etherscan: {
+    // Your API key for Etherscan
+    // Obtain one at https://etherscan.io/
+    apiKey: "9ZYB8NMQ5TXCFK1WCDZT2B5YE4Z3XW2X5P"
   },
   solc: {
     version: "0.6.11",

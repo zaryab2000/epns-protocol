@@ -66,31 +66,31 @@ async function main() {
   const referralCode = 0;
   const delay = 0; // uint for the timelock delay
 
-  const epns = await deploy("EPNS");
+  // const epns = await deploy("EPNS");
   const core = await deploy("EPNSCore");
 
-  const timelock = await deploy("Timelock", [admin, delay]); // governor and a guardian,
+  // const timelock = await deploy("Timelock", [admin, delay]); // governor and a guardian,
 
   let logic = core.address;
-  let governance = timelock.address;
+  // let governance = timelock.address;
+  let governance = '<YOUR 0x ADDRESS>';
+  // const governorAlpha = await deploy("GovernorAlpha", [
+  //   governance,
+  //   epns.address,
+  //   admin,
+  // ]);
 
-  const governorAlpha = await deploy("GovernorAlpha", [
-    governance,
-    epns.address,
-    admin,
-  ]);
+  // const currBlock = await ethers.provider.getBlock('latest');
+  //
+  // const eta = currBlock.timestamp;
+  // const coder = new ethers.utils.AbiCoder();
 
-  const currBlock = await ethers.provider.getBlock('latest');
+  // let data = coder.encode(['address'], [governorAlpha.address]);
 
-  const eta = currBlock.timestamp;
-  const coder = new ethers.utils.AbiCoder();
-
-  let data = coder.encode(['address'], [governorAlpha.address]);
-
-  await timelock.functions.queueTransaction(timelock.address, '0', 'setPendingAdmin(address)', data, (eta + 1));
-  await ethers.provider.send('evm_mine');
-  await ethers.provider.send('evm_mine');
-  await timelock.functions.executeTransaction(timelock.address, '0', 'setPendingAdmin(address)', data, (eta + 1));
+  // await timelock.functions.queueTransaction(timelock.address, '0', 'setPendingAdmin(address)', data, (eta + 1));
+  // await ethers.provider.send('evm_mine');
+  // await ethers.provider.send('evm_mine');
+  // await timelock.functions.executeTransaction(timelock.address, '0', 'setPendingAdmin(address)', data, (eta + 1));
 
   const coreProxy = await deploy("EPNSProxy", [
     logic,
@@ -99,6 +99,7 @@ async function main() {
     DAI,
     ADAI,
     referralCode,
+    {gasLimit: 8000000}
   ]);
 
 }

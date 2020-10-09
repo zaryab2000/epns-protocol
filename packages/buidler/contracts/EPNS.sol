@@ -1,6 +1,5 @@
 pragma solidity >=0.6.0 <0.7.0;
 pragma experimental ABIEncoderV2;
-import "@nomiclabs/buidler/console.sol";
 
 contract EPNS {
     /// @notice EIP-20 token name for this token
@@ -79,7 +78,6 @@ contract EPNS {
         address account = msg.sender;
         balances[account] = uint96(totalSupply);
         emit Transfer(address(0), account, totalSupply);
-        console.log(msg.sender,balances[msg.sender]);
     }
 
     /**
