@@ -110,6 +110,7 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
 
         // To calculate fair share of profit from the pool of channels generating interest
         uint channelStartBlock; // Helps in defining when channel started for pool and profit calculation
+        uint channelUpdateBlock; // Helps in outlining when channel was updated
         uint channelWeight; // The individual weight to be applied as per pool contribution
 
         // To keep track of subscribers info
@@ -233,7 +234,7 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
         DELEGATED_CONTRACT_FEES = 1 * 10 ** 17; // 0.1 DAI to perform any delegate call
 
         ADD_CHANNEL_MIN_POOL_CONTRIBUTION = 50; // 50 DAI or above to create the channel
-        ADD_CHANNEL_MAX_POOL_CONTRIBUTION = 500 * 50 * 10 ** 18; // 500 DAI or below, we don't want channel to make a costly mistake as well, for test it's 25k
+        ADD_CHANNEL_MAX_POOL_CONTRIBUTION = 250000 * 50 * 10 ** 18; // 250k DAI or below, we don't want channel to make a costly mistake as well
 
         EPNS_FIRST_MESSAGE_HASH = "3+QmZbff755tAPZ22REdF5PDLLjtbRUKu2THaXSZ7pkRf2qV";
         groupLastUpdate = block.number;
@@ -259,10 +260,10 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
         // First is for all users
         // Second is all channel alerter, amount deposited for both is 0
         // to save gas, emit both the events out
-        emit AddChannel(0x0000000000000000000000000000000000000000, "QmTCKYL2HRbwD6nGNvFLe4wPvDNuaYGr6RiVeCvWjVpn5s");
-        emit AddChannel(governance, "QmSbRT16JVF922yAB26YxWFD6DmGsnSHm8VBrGUQnXTS74");
+        // identity = channeltype + payloadtype + payloadhash
+        emit AddChannel(0x0000000000000000000000000000000000000000, "1+1+QmTCKYL2HRbwD6nGNvFLe4wPvDNuaYGr6RiVeCvWjVpn5s");
+        emit AddChannel(governance, "1+1+QmSbRT16JVF922yAB26YxWFD6DmGsnSHm8VBrGUQnXTS74");
 
-        // Also, call the EPNSServer contract to which the server is listening, will be removed after alpha
         // Create Channel
         _createChannel(0x0000000000000000000000000000000000000000, ChannelType.NonInterestBearing, 0);
         _createChannel(governance, ChannelType.NonInterestBearing, 0); // should the owner of the contract be the channel? should it be governance in this case?
@@ -335,7 +336,7 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
         require(users[_user].graylistedChannels[_channel] == false, "Channel is graylisted");
         _;
     }
-    
+
     function transferGovernance(address _newGovernance) onlyGov public {
         require (_newGovernance != address(0), "EPNSCore::transferGovernance, new governance can't be none");
         require (_newGovernance != governance, "EPNSCore::transferGovernance, new governance can't be current governance");
@@ -389,6 +390,28 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
 
         // Bubble down to create channel
         _createChannelWithFees();
+    }
+
+    /// @dev To update channel, only possible if 1 subscriber is present or this is governance
+    function updateChannel(address _channel, bytes calldata _identity) external {
+      emit UpdateChannel(_channel);
+
+      _updateChannel(_channel, _identity);
+    }
+
+    function _updateChannel(address _channel, bytes calldata _identity) internal onlyChannelOwner(_channel) onlyActivatedChannels(_channel) {
+      // check if special channel
+      if (msg.sender == governance && _channel == 0x0000000000000000000000000000000000000000) {
+        // don't do check for 1
+
+      }
+      else {
+        // do check for 1
+        require (channels[_channel].memberCount == 1, "Channel has external subscribers");
+      }
+
+      // update block number
+      channels[msg.sender].channelUpdateBlock = block.number;
     }
 
     /// @dev Deactivate channel
@@ -791,6 +814,7 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
         channels[_channel].poolContribution = _amountDeposited;
         channels[_channel].channelType = _channelType;
         channels[_channel].channelStartBlock = block.number;
+        channels[_channel].channelUpdateBlock = block.number;
         channels[_channel].channelWeight = _channelWeight;
 
         // Add to map of addresses and increment channel count
