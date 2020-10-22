@@ -49,7 +49,7 @@ interface ILendingPool {
 
 interface IEPNSCore {}
 
-contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
+contract EPNSCore is Initializable, ReentrancyGuard  {
     using SafeMath for uint;
     using SafeERC20 for IERC20;
 
@@ -110,6 +110,7 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
 
         // To calculate fair share of profit from the pool of channels generating interest
         uint channelStartBlock; // Helps in defining when channel started for pool and profit calculation
+        uint channelUpdateBlock; // Helps in outlining when channel was updated
         uint channelWeight; // The individual weight to be applied as per pool contribution
 
         // To keep track of subscribers info
@@ -125,6 +126,10 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
         mapping(address => uint) memberLastUpdate;
     }
 
+    /* Create for testnet strict owner only channel whitelist
+     * Will not be available on mainnet since that has real defi involed, use staging contract
+     * for developers looking to try on hand
+    */
     // To keep track of channels
     mapping(address => Channel) public channels;
     mapping(uint => address) public mapAddressChannels;
@@ -202,6 +207,67 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
     event Donation(address indexed donator, uint amt);
     event Withdrawal(address indexed to, address token, uint amount);
 
+    /* ***************
+    * INITIALIZER,
+    *************** */
+
+    function initialize(
+        address _governance,
+        address _lendingPoolProviderAddress,
+        address _daiAddress,
+        address _aDaiAddress,
+        uint _referralCode
+    ) public initializer returns (bool success) {
+
+
+        // setup addresses
+        governance = _governance; // multisig/timelock, also controls the proxy
+        lendingPoolProviderAddress = _lendingPoolProviderAddress;
+        daiAddress = _daiAddress;
+        aDaiAddress = _aDaiAddress;
+        REFERRAL_CODE = _referralCode;
+
+
+        UPDATE_CHANNEL_POOL_CONTRIBUTION = 500 * 10 ** 18; // 500 DAI or above to update the channel
+        DELEGATED_CONTRACT_FEES = 1 * 10 ** 17; // 0.1 DAI to perform any delegate call
+
+        ADD_CHANNEL_MIN_POOL_CONTRIBUTION = 50; // 50 DAI or above to create the channel
+        ADD_CHANNEL_MAX_POOL_CONTRIBUTION = 250000 * 50 * 10 ** 18; // 250k DAI or below, we don't want channel to make a costly mistake as well
+
+        EPNS_FIRST_MESSAGE_HASH = "3+QmZbff755tAPZ22REdF5PDLLjtbRUKu2THaXSZ7pkRf2qV";
+        groupLastUpdate = block.number;
+        groupNormalizedWeight = ADJUST_FOR_FLOAT; // Always Starts with 1 * ADJUST FOR FLOAT
+
+        ADJUST_FOR_FLOAT = 10 ** 7; // TODO: checkout dsmath
+        channelsCount = 0;
+        usersCount = 0;
+
+        // Helper for calculating fair share of pool, group are all channels, renamed to avoid confusion
+        groupNormalizedWeight = 0;
+        groupHistoricalZ = 0; // Abbre
+        groupLastUpdate = 0; // The last update block number, used to calculate fair share
+        groupFairShareCount = 0; // They are alias to channels count but seperating them for brevity
+
+        /*
+        For maintaining the #DeFi finances
+        */
+        poolFunds = 0; // Always in DAI
+        ownerDaiFunds = 0;
+
+        // Add EPNS Channels
+        // First is for all users
+        // Second is all channel alerter, amount deposited for both is 0
+        // to save gas, emit both the events out
+        // identity = channeltype + payloadtype + payloadhash
+        emit AddChannel(0x0000000000000000000000000000000000000000, "1+1+QmTCKYL2HRbwD6nGNvFLe4wPvDNuaYGr6RiVeCvWjVpn5s");
+        emit AddChannel(governance, "1+1+QmSbRT16JVF922yAB26YxWFD6DmGsnSHm8VBrGUQnXTS74");
+
+        // Create Channel
+        _createChannel(0x0000000000000000000000000000000000000000, ChannelType.NonInterestBearing, 0);
+        _createChannel(governance, ChannelType.NonInterestBearing, 0); // should the owner of the contract be the channel? should it be governance in this case?
+        success = true;
+    }
+
     receive() external payable {}
 
     fallback() external {
@@ -262,7 +328,7 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
         require(users[_user].graylistedChannels[_channel] == false, "Channel is graylisted");
         _;
     }
-    
+
     function transferGovernance(address _newGovernance) onlyGov public {
         require (_newGovernance != address(0), "EPNSCore::transferGovernance, new governance can't be none");
         require (_newGovernance != governance, "EPNSCore::transferGovernance, new governance can't be current governance");
@@ -306,6 +372,28 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
 
         // Bubble down to create channel
         _createChannelWithFees();
+    }
+
+    /// @dev To update channel, only possible if 1 subscriber is present or this is governance
+    function updateChannel(address _channel, bytes calldata _identity) external {
+      emit UpdateChannel(_channel, _identity);
+
+      _updateChannel(_channel, _identity);
+    }
+
+    function _updateChannel(address _channel, bytes calldata _identity) internal onlyChannelOwner(_channel) onlyActivatedChannels(_channel) {
+      // check if special channel
+      if (msg.sender == governance && _channel == 0x0000000000000000000000000000000000000000) {
+        // don't do check for 1
+
+      }
+      else {
+        // do check for 1
+        require (channels[_channel].memberCount == 1, "Channel has external subscribers");
+      }
+
+      // update block number
+      channels[msg.sender].channelUpdateBlock = block.number;
     }
 
     /// @dev Deactivate channel
@@ -708,6 +796,7 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
         channels[_channel].poolContribution = _amountDeposited;
         channels[_channel].channelType = _channelType;
         channels[_channel].channelStartBlock = block.number;
+        channels[_channel].channelUpdateBlock = block.number;
         channels[_channel].channelWeight = _channelWeight;
 
         // Add to map of addresses and increment channel count

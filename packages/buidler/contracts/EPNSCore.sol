@@ -394,7 +394,7 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
 
     /// @dev To update channel, only possible if 1 subscriber is present or this is governance
     function updateChannel(address _channel, bytes calldata _identity) external {
-      emit UpdateChannel(_channel);
+      emit UpdateChannel(_channel, _identity);
 
       _updateChannel(_channel, _identity);
     }

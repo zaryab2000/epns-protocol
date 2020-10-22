@@ -73,7 +73,7 @@ async function main() {
 
   let logic = core.address;
   // let governance = timelock.address;
-  let governance = '<YOUR 0x ADDRESS>';
+  let governance = '0x0a651cF7A9b60082fecdb5f30DB7914Fd7d2cf93';
   // const governorAlpha = await deploy("GovernorAlpha", [
   //   governance,
   //   epns.address,
