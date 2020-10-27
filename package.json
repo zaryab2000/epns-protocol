@@ -41,5 +41,13 @@
   "dependencies": {
     "@openzeppelin/buidler-upgrades": "^1.1.0",
     "@openzeppelin/upgrades": "^2.8.0"
+  },
+  "devDependencies": {
+    "@nomiclabs/buidler": "1.4.8",
+    "@nomiclabs/buidler-ethers": "2.0.2",
+    "@nomiclabs/buidler-etherscan": "2.1.0",
+    "@nomiclabs/buidler-waffle": "2.1.0",
+    "ethereum-waffle": "3.1.1",
+    "ethers": "5.0.18"
   }
 }

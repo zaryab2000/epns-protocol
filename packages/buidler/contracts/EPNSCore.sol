@@ -57,7 +57,7 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
     * DEFINE ENUMS AND CONSTANTS
     *************** */
     // For Message Type
-    enum ChannelType {InterestBearingChannel, NonInterestBearing}
+    enum ChannelType {ProtocolNonInterest, ProtocolPromotion, InterestBearingOpen, InterestBearingMutual}
     enum ChannelAction {ChannelRemoved, ChannelAdded, ChannelUpdated}
     enum SubscriberAction {SubscriberRemoved, SubscriberAdded, SubscriberUpdated}
 
@@ -145,9 +145,6 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
     mapping(address => uint) public usersInterestInWallet;
 
 
-    bytes EPNS_FIRST_MESSAGE_HASH;
-
-
     /**
         Address Lists
     */
@@ -176,7 +173,6 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
 
     uint ADD_CHANNEL_MAX_POOL_CONTRIBUTION;
 
-    uint UPDATE_CHANNEL_POOL_CONTRIBUTION;
     uint DELEGATED_CONTRACT_FEES;
 
     uint ADJUST_FOR_FLOAT;
@@ -191,7 +187,7 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
     event PublicKeyRegistered(address indexed owner, bytes publickey);
 
     // Channel Related | // This Event is listened by on All Infra Services
-    event AddChannel(address indexed channel, bytes identity);
+    event AddChannel(address indexed channel, ChannelType indexed channelType, bytes identity);
     event UpdateChannel(address indexed channel, bytes identity);
     event DeactivateChannel(address indexed channel);
 
@@ -220,8 +216,6 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
         address _aDaiAddress,
         uint _referralCode
     ) public initializer returns (bool success) {
-
-
         // setup addresses
         governance = _governance; // multisig/timelock, also controls the proxy
         lendingPoolProviderAddress = _lendingPoolProviderAddress;
@@ -229,14 +223,11 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
         aDaiAddress = _aDaiAddress;
         REFERRAL_CODE = _referralCode;
 
-
-        UPDATE_CHANNEL_POOL_CONTRIBUTION = 500 * 10 ** 18; // 500 DAI or above to update the channel
         DELEGATED_CONTRACT_FEES = 1 * 10 ** 17; // 0.1 DAI to perform any delegate call
 
-        ADD_CHANNEL_MIN_POOL_CONTRIBUTION = 50; // 50 DAI or above to create the channel
+        ADD_CHANNEL_MIN_POOL_CONTRIBUTION = 50 * 10 ** 18; // 50 DAI or above to create the channel
         ADD_CHANNEL_MAX_POOL_CONTRIBUTION = 250000 * 50 * 10 ** 18; // 250k DAI or below, we don't want channel to make a costly mistake as well
 
-        EPNS_FIRST_MESSAGE_HASH = "3+QmZbff755tAPZ22REdF5PDLLjtbRUKu2THaXSZ7pkRf2qV";
         groupLastUpdate = block.number;
         groupNormalizedWeight = ADJUST_FOR_FLOAT; // Always Starts with 1 * ADJUST FOR FLOAT
 
@@ -260,13 +251,17 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
         // First is for all users
         // Second is all channel alerter, amount deposited for both is 0
         // to save gas, emit both the events out
-        // identity = channeltype + payloadtype + payloadhash
-        emit AddChannel(0x0000000000000000000000000000000000000000, "1+1+QmTCKYL2HRbwD6nGNvFLe4wPvDNuaYGr6RiVeCvWjVpn5s");
-        emit AddChannel(governance, "1+1+QmSbRT16JVF922yAB26YxWFD6DmGsnSHm8VBrGUQnXTS74");
+        // identity = payloadtype + payloadhash
+
+        // EPNS ALL USERS
+        emit AddChannel(governance, ChannelType.ProtocolNonInterest, "1+QmSbRT16JVF922yAB26YxWFD6DmGsnSHm8VBrGUQnXTS74");
+        _createChannel(governance, ChannelType.ProtocolNonInterest, 0); // should the owner of the contract be the channel? should it be governance in this case?
+
+        // EPNS ALERTER CHANNEL
+        emit AddChannel(0x0000000000000000000000000000000000000000, ChannelType.ProtocolNonInterest, "1+QmTCKYL2HRbwD6nGNvFLe4wPvDNuaYGr6RiVeCvWjVpn5s");
+        _createChannel(0x0000000000000000000000000000000000000000, ChannelType.ProtocolNonInterest, 0);
 
         // Create Channel
-        _createChannel(0x0000000000000000000000000000000000000000, ChannelType.NonInterestBearing, 0);
-        _createChannel(governance, ChannelType.NonInterestBearing, 0); // should the owner of the contract be the channel? should it be governance in this case?
         success = true;
     }
 
@@ -315,6 +310,15 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
         "Channel doesn't Exists"
         );
         _;
+    }
+
+    modifier onlyUserAllowedChannelType(ChannelType _channelType) {
+      require(
+        (_channelType == ChannelType.InterestBearingOpen || _channelType == ChannelType.InterestBearingMutual),
+        "Channel Type Invalid"
+      );
+
+      _;
     }
 
     modifier onlySubscribed(address _channel, address _subscriber) {
@@ -366,10 +370,10 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
     }
 
     /// @dev Create channel with fees and public key
-    function createChannelWithFeesAndPublicKey(bytes calldata _identity, bytes calldata _publickey)
-        external onlyUserWithNoChannel onlyChannelizationWhitelist(msg.sender) {
+    function createChannelWithFeesAndPublicKey(ChannelType _channelType, bytes calldata _identity, bytes calldata _publickey)
+        external onlyUserWithNoChannel onlyUserAllowedChannelType(_channelType) onlyChannelizationWhitelist(msg.sender) {
         // Save gas, Emit the event out
-        emit AddChannel(msg.sender, _identity);
+        emit AddChannel(msg.sender, _channelType, _identity);
 
         // Broadcast public key
         // @TODO Find a way to save cost
@@ -380,38 +384,48 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
         }
 
         // Bubble down to create channel
-        _createChannelWithFees();
+        _createChannelWithFees(msg.sender, _channelType);
     }
 
     /// @dev Create channel with fees
-    function createChannelWithFees(bytes calldata _identity) external onlyUserWithNoChannel onlyChannelizationWhitelist(msg.sender) {
+    function createChannelWithFees(ChannelType _channelType, bytes calldata _identity)
+      external onlyUserWithNoChannel onlyUserAllowedChannelType(_channelType) onlyChannelizationWhitelist(msg.sender) {
         // Save gas, Emit the event out
-        emit AddChannel(msg.sender, _identity);
+        emit AddChannel(msg.sender, _channelType, _identity);
 
         // Bubble down to create channel
-        _createChannelWithFees();
+        _createChannelWithFees(msg.sender, _channelType);
+    }
+
+    /// @dev One time, Create Promoter Channel
+    function createPromoterChannel() external {
+      // EPNS PROMOTER CHANNEL
+      require(users[address(this)].channellized == false, "Contract has Promoter");
+
+      // NEED TO HAVE ALLOWANCE OF MINIMUM DAI
+      IERC20(daiAddress).approve(address(this), ADD_CHANNEL_MIN_POOL_CONTRIBUTION);
+
+      // Check if it's equal or above Channel Pool Contribution
+      require(
+          IERC20(daiAddress).allowance(msg.sender, address(this)) >= ADD_CHANNEL_MIN_POOL_CONTRIBUTION,
+          "Insufficient Funds"
+      );
+
+      // Check and transfer funds
+      IERC20(daiAddress).transferFrom(msg.sender, address(this), ADD_CHANNEL_MIN_POOL_CONTRIBUTION);
+
+      // Then Add Promoter Channel
+      emit AddChannel(address(this), ChannelType.ProtocolPromotion, "1+QmRcewnNpdt2DWYuud3LxHTwox2RqQ8uyZWDJ6eY6iHkfn");
+
+      // Call create channel after fees transfer
+      _createChannelAfterTransferOfFees(address(this), ChannelType.ProtocolPromotion, ADD_CHANNEL_MIN_POOL_CONTRIBUTION);
     }
 
     /// @dev To update channel, only possible if 1 subscriber is present or this is governance
-    function updateChannel(address _channel, bytes calldata _identity) external {
+    function updateChannelMeta(address _channel, bytes calldata _identity) external {
       emit UpdateChannel(_channel, _identity);
 
-      _updateChannel(_channel, _identity);
-    }
-
-    function _updateChannel(address _channel, bytes calldata _identity) internal onlyChannelOwner(_channel) onlyActivatedChannels(_channel) {
-      // check if special channel
-      if (msg.sender == governance && _channel == 0x0000000000000000000000000000000000000000) {
-        // don't do check for 1
-
-      }
-      else {
-        // do check for 1
-        require (channels[_channel].memberCount == 1, "Channel has external subscribers");
-      }
-
-      // update block number
-      channels[msg.sender].channelUpdateBlock = block.number;
+      _updateChannelMeta(_channel);
     }
 
     /// @dev Deactivate channel
@@ -533,7 +547,11 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
         );
 
         // Next calculate and send the fair share earning of the user from this channel
-        if (channel.channelType == ChannelType.InterestBearingChannel) {
+        if (
+          channel.channelType == ChannelType.ProtocolPromotion
+          || channel.channelType == ChannelType.InterestBearingOpen
+          || channel.channelType == ChannelType.InterestBearingMutual
+        ) {
             _withdrawFundsFromPool(ratio);
         }
 
@@ -551,7 +569,11 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
         for (uint i = 0; i < users[msg.sender].subscribedCount; i++) {
             address channel = users[msg.sender].mapAddressSubscribed[i];
 
-            if (channels[channel].channelType == ChannelType.InterestBearingChannel) {
+            if (
+                channels[channel].channelType == ChannelType.ProtocolPromotion
+                || channels[channel].channelType == ChannelType.InterestBearingOpen
+                || channels[channel].channelType == ChannelType.InterestBearingMutual
+              ) {
                 // Reset last updated block
                 channels[channel].memberLastUpdate[msg.sender] = block.number;
 
@@ -701,7 +723,11 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
         uint _block
     ) public view onlySubscribed(_channel, _user) returns (uint ratio) {
         // First get the channel fair share
-        if (channels[_channel].channelType == ChannelType.InterestBearingChannel) {
+        if (
+          channels[_channel].channelType == ChannelType.ProtocolPromotion
+          || channels[_channel].channelType == ChannelType.InterestBearingOpen
+          || channels[_channel].channelType == ChannelType.InterestBearingMutual
+        ) {
             uint channelFS = getChannelFSRatio(_channel, _block);
             uint subscriberFS = getSubscriberFSRatio(_channel, _user, _block);
 
@@ -716,7 +742,11 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
 
         // WARN: This unbounded for loop is an anti-pattern
         for (uint i = 0; i < subscribedCount; i++) {
-            if (channels[users[_user].mapAddressSubscribed[i]].channelType == ChannelType.InterestBearingChannel) {
+            if (
+              channels[users[_user].mapAddressSubscribed[i]].channelType == ChannelType.ProtocolPromotion
+              || channels[users[_user].mapAddressSubscribed[i]].channelType == ChannelType.InterestBearingOpen
+              || channels[users[_user].mapAddressSubscribed[i]].channelType == ChannelType.InterestBearingMutual
+            ) {
                 uint individualChannelShare = calcSingleChannelEarnRatio(users[_user].mapAddressSubscribed[i], _user, _block);
                 ratio = ratio.add(individualChannelShare);
             }
@@ -736,8 +766,8 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
 
             usersCount = usersCount.add(1);
 
-            // Send Welcome Message
-            emit SendNotification(governance, _addr, EPNS_FIRST_MESSAGE_HASH);
+            // Send Welcome Message, Deprecated
+            // emit SendNotification(governance, _addr, EPNS_FIRST_MESSAGE_HASH);
         }
     }
 
@@ -774,30 +804,30 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
     }
 
     /// @dev add channel with fees
-    function _createChannelWithFees() private {
-        // This module should be completely independent from the private _createChannel() so constructor can do it's magic
-        // Get the approved allowance
-        uint allowedAllowance = IERC20(daiAddress).allowance(msg.sender, address(this));
+    function _createChannelWithFees(address _channel, ChannelType _channelType) private {
+      // This module should be completely independent from the private _createChannel() so constructor can do it's magic
+      // Get the approved allowance
+      uint allowedAllowance = IERC20(daiAddress).allowance(_channel, address(this));
 
-        // Check if it's equal or above Channel Pool Contribution
-        require(
-            allowedAllowance >= ADD_CHANNEL_MIN_POOL_CONTRIBUTION && allowedAllowance <= ADD_CHANNEL_MAX_POOL_CONTRIBUTION,
-            "Insufficient Funds or max ceiling reached"
-        );
+      // Check if it's equal or above Channel Pool Contribution
+      require(
+          allowedAllowance >= ADD_CHANNEL_MIN_POOL_CONTRIBUTION && allowedAllowance <= ADD_CHANNEL_MAX_POOL_CONTRIBUTION,
+          "Insufficient Funds or max ceiling reached"
+      );
 
-        // Check and transfer funds
-        IERC20(daiAddress).safeTransferFrom(msg.sender, address(this), allowedAllowance);
+      // Check and transfer funds
+      IERC20(daiAddress).safeTransferFrom(_channel, address(this), allowedAllowance);
 
-        // Deposit funds to pool
-        _depositFundsToPool(allowedAllowance);
+      // Call create channel after fees transfer
+      _createChannelAfterTransferOfFees(_channel, _channelType, allowedAllowance);
+    }
 
-        // // Generate a random allowed allowance, for testing Generates 50 to 25000 range
-        // uint allowedAllowance = ((uint(keccak256(abi.encodePacked(block.timestamp, block.difficulty))) % 24950) + 50) * 10 ** 18;
-        // poolFunds = poolFunds.add(allowedAllowance);
-        // Testing Endss
+    function _createChannelAfterTransferOfFees(address _channel, ChannelType _channelType, uint _allowedAllowance) private {
+      // Deposit funds to pool
+      _depositFundsToPool(_allowedAllowance);
 
-        // Call Create Channel
-        _createChannel(msg.sender, ChannelType.InterestBearingChannel, allowedAllowance);
+      // Call Create Channel
+      _createChannel(_channel, _channelType, _allowedAllowance);
     }
 
     /// @dev Create channel internal method that runs
@@ -822,7 +852,11 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
         channelsCount = channelsCount.add(1);
 
         // Readjust fair share if interest bearing
-        if (_channelType == ChannelType.InterestBearingChannel) {
+        if (
+          _channelType == ChannelType.ProtocolPromotion
+          || _channelType == ChannelType.InterestBearingOpen
+          || _channelType == ChannelType.InterestBearingMutual
+        ) {
             (groupFairShareCount, groupNormalizedWeight, groupHistoricalZ, groupLastUpdate) = _readjustFairShareOfChannels(
                 ChannelAction.ChannelAdded,
                 _channelWeight,
@@ -846,8 +880,23 @@ contract EPNSCore is Initializable, ReentrancyGuard  {
 
         // Subscribe them to their own channel as well
         if (_channel != governance) {
-            _subscribe(_channel, _channel);
+          _subscribe(_channel, _channel);
         }
+    }
+
+    /// @dev private function to update channel meta
+    function _updateChannelMeta(address _channel) internal onlyChannelOwner(_channel) onlyActivatedChannels(_channel) {
+      // check if special channel
+      if (msg.sender == governance && (_channel == governance || _channel == 0x0000000000000000000000000000000000000000 || _channel == address(this))) {
+        // don't do check for 1 as these are special channels
+
+      }
+      else {
+        // do check for 1
+        require (channels[_channel].memberCount == 1, "Channel has external subscribers");
+      }
+
+      channels[msg.sender].channelUpdateBlock = block.number;
     }
 
     /// @dev private function that eventually handles the subscribing onlyValidChannel(_channel)

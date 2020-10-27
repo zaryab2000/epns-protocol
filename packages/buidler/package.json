@@ -12,8 +12,7 @@
   },
   "dependencies": {
     "@nomiclabs/buidler": "^1.4.3",
-    "@nomiclabs/buidler-ethers": "^2.0.0",
-    "@nomiclabs/buidler-etherscan": "^2.1.0",
+    "@nomiclabs/buidler-etherscan": "2.1.0",
     "@nomiclabs/buidler-waffle": "^2.0.0",
     "@openzeppelin/contracts": "^3.2.0",
     "chai": "^4.2.0",

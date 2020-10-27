@@ -6,6 +6,11 @@
 
 ## quickstart
 
+## deploy
+
+> To Deploy:
+
+>> in  first terminal window:
 ```bash
 
 yarn install
@@ -30,6 +35,20 @@ yarn run deploy
 
 ```
 
+> To Verify
+
+>> goto buidler folder and run with CONTRACT of EPNSCore as deployed:
+
+```bash
+
+yarn run buidler verify CONTRACT_EPNSCore
+
+```
+
+>> goto etherscan and verify as proxy:
+
+
+
 🔏 Edit your smart contract `YourContract.sol` in `packages/buidler/contracts`
 
 📝 Edit your frontend `App.jsx` in `packages/react-app/src`
@@ -40,7 +59,7 @@ yarn run deploy
 
 ![image](https://user-images.githubusercontent.com/2653167/91858466-768bb080-ec26-11ea-9e9b-81519f7f1c90.png)
 
-> React dev server, Buidler blockchain, deploy terminal, code IDE, and frontend browser. 
+> React dev server, Buidler blockchain, deploy terminal, code IDE, and frontend browser.
 
 📚 Keep [solidity by example](https://solidity-by-example.org) handy and check out the [Solidity globals and units](https://solidity.readthedocs.io/en/v0.6.6/units-and-global-variables.html)
 
@@ -74,7 +93,7 @@ yarn run deploy
 
 🔲 Try making a `<Button/>` that calls `writeContracts.YourContract.setPurpose("👋 Hello World")` to explore how your UI might work
 
-🧬 Next learn about [structs](https://solidity-by-example.org/0.6/structs/) in Solidity. 
+🧬 Next learn about [structs](https://solidity-by-example.org/0.6/structs/) in Solidity.
 
 🗳 Maybe an make an array `YourStructName[] public proposals;` that could call be voted on with `function vote() public {}`
 
