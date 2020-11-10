@@ -29,9 +29,9 @@
     "surge": "yarn workspace @scaffold-eth/react-app surge",
     "s3": "yarn workspace @scaffold-eth/react-app s3",
     "ship": "yarn workspace @scaffold-eth/react-app ship",
-    "generate": "cd packages/buidler && npx buidler generate",
-    "account": "cd packages/buidler && npx buidler account",
-    "flatten": "cd packages/buidler && npx buidler flatten"
+    "generate": "cd packages/buidler && npx hardhat generate",
+    "account": "cd packages/buidler && npx hardhat account",
+    "flatten": "cd packages/buidler && npx hardhat flatten"
   },
   "workspaces": {
     "packages": [

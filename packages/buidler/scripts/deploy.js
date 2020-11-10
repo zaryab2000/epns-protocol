@@ -1,6 +1,6 @@
 const fs = require("fs");
 const chalk = require("chalk");
-const { config, ethers } = require("@nomiclabs/buidler");
+const { config, ethers } = require("hardhat");
 
 async function deploy(name, _args) {
   const args = _args || [];
@@ -71,9 +71,10 @@ async function main() {
 
   // const timelock = await deploy("Timelock", [admin, delay]); // governor and a guardian,
 
-  let logic = core.address;
-  // let governance = timelock.address;
-  let governance = '<YOUR 0x ADDRESS>';
+  // let logic = core.address;
+  // let governance = timelock
+  // let logic = '0x313ba88d1a4e966039ee2de7d0f8c06c058c5d12';
+  // let governance = '0x0a651cF7A9b60082fecdb5f30DB7914Fd7d2cf93';
   // const governorAlpha = await deploy("GovernorAlpha", [
   //   governance,
   //   epns.address,
@@ -92,15 +93,15 @@ async function main() {
   // await ethers.provider.send('evm_mine');
   // await timelock.functions.executeTransaction(timelock.address, '0', 'setPendingAdmin(address)', data, (eta + 1));
 
-  const coreProxy = await deploy("EPNSProxy", [
-    logic,
-    governance,
-    AAVE_LENDING_POOL,
-    DAI,
-    ADAI,
-    referralCode,
-    {gasLimit: 8000000}
-  ]);
+  // const coreProxy = await deploy("EPNSProxy", [
+  //   logic,
+  //   governance,
+  //   AAVE_LENDING_POOL,
+  //   DAI,
+  //   ADAI,
+  //   referralCode,
+  //   {gasLimit: 8000000}
+  // ]);
 
 }
 

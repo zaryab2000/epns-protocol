@@ -86,7 +86,7 @@ yarn run deploy
 
 🚁 OH! Programming decentralized money! 😎 So rad!
 
-🛰 Ready to deploy to a testnet? Change the `defaultNetwork` in `packages/buidler/buidler.config.js`
+🛰 Ready to deploy to a testnet? Change the `defaultNetwork` in `packages/buidler/hardhat.config.js`
 
 🔐 Generate a deploy account with `yarn run generate` and view it with `yarn run account`
 
@@ -312,7 +312,7 @@ yarn run balance **YOUR-ADDRESS**
 yarn run send --from 0 --amount 0.5 --to **YOUR-ADDRESS**
 ```
 
-> 🔧 Configure 👷[Buidler](https://buidler.dev/config/) by editing `buidler.config.js` in `packages/buidler`
+> 🔧 Configure 👷[Buidler](https://buidler.dev/config/) by editing `hardhat.config.js` in `packages/buidler`
 
 ---
 

@@ -1,6 +1,7 @@
-const { ethers } = require("@nomiclabs/buidler");
+const { ethers } = require("hardhat");
 
-const BN = require('bn.js');
+const BN = require("bn.js");
+
 async function advanceBlock() {
   return ethers.provider.send("evm_mine");
 }
@@ -30,6 +31,33 @@ async function advanceBlockTo(target) {
   }
 }
 
+async function advanceBlockBy(advancement) {
+  if (!BN.isBN(advancement)) {
+    // eslint-disable-next-line no-param-reassign
+    advancement = new BN(advancement);
+  }
+
+  const currentBlock = await latestBlock();
+
+  const target = currentBlock + advancement;
+  const start = Date.now();
+
+  let notified;
+  if (target.lt(currentBlock))
+    throw Error(
+      `Target block #(${target}) is lower than current block #(${currentBlock})`
+    );
+  // eslint-disable-next-line no-await-in-loop
+  while ((await latestBlock()).lt(target)) {
+    if (!notified && Date.now() - start >= 5000) {
+      notified = true;
+      console.log("advancing too far will slow this test down");
+    }
+    // eslint-disable-next-line no-await-in-loop
+    await advanceBlock();
+  }
+}
+
 // Returns the time of the last mined block in seconds
 async function latest() {
   const block = await ethers.provider.getBlock("latest");
@@ -40,7 +68,6 @@ async function latestBlock() {
   const block = await ethers.provider.getBlock("latest");
   return new BN(block.number);
 }
-
 // Increases ganache time by the passed duration in seconds
 async function increase(duration) {
   if (!BN.isBN(duration)) {
@@ -106,4 +133,5 @@ module.exports = {
   increase,
   increaseTo,
   duration,
+  advanceBlockBy
 };
