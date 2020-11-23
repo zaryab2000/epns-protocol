@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "hardhat/console.sol";
+import "@nomiclabs/buidler/console.sol";
 
 interface ILendingPoolAddressesProvider {
     function getLendingPoolCore() external view returns (address payable);
@@ -49,7 +49,7 @@ interface ILendingPool {
 
 interface IEPNSCore {}
 
-contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
+contract EPNSCore is Initializable, ReentrancyGuard  {
     using SafeMath for uint;
     using SafeERC20 for IERC20;
 
@@ -57,7 +57,7 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
     * DEFINE ENUMS AND CONSTANTS
     *************** */
     // For Message Type
-    enum ChannelType {InterestBearingChannel, NonInterestBearing}
+    enum ChannelType {ProtocolNonInterest, ProtocolPromotion, InterestBearingOpen, InterestBearingMutual}
     enum ChannelAction {ChannelRemoved, ChannelAdded, ChannelUpdated}
     enum SubscriberAction {SubscriberRemoved, SubscriberAdded, SubscriberUpdated}
 
@@ -110,6 +110,7 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
 
         // To calculate fair share of profit from the pool of channels generating interest
         uint channelStartBlock; // Helps in defining when channel started for pool and profit calculation
+        uint channelUpdateBlock; // Helps in outlining when channel was updated
         uint channelWeight; // The individual weight to be applied as per pool contribution
 
         // To keep track of subscribers info
@@ -125,6 +126,12 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
         mapping(address => uint) memberLastUpdate;
     }
 
+    /* Create for testnet strict owner only channel whitelist
+     * Will not be available on mainnet since that has real defi involed, use staging contract
+     * for developers looking to try on hand
+    */
+    mapping(address => bool) channelizationWhitelist;
+
     // To keep track of channels
     mapping(address => Channel) public channels;
     mapping(uint => address) public mapAddressChannels;
@@ -136,9 +143,6 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
     // To keep track of interest claimed and interest in wallet
     mapping(address => uint) public usersInterestClaimed;
     mapping(address => uint) public usersInterestInWallet;
-
-
-    bytes EPNS_FIRST_MESSAGE_HASH;
 
 
     /**
@@ -169,7 +173,6 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
 
     uint ADD_CHANNEL_MAX_POOL_CONTRIBUTION;
 
-    uint UPDATE_CHANNEL_POOL_CONTRIBUTION;
     uint DELEGATED_CONTRACT_FEES;
 
     uint ADJUST_FOR_FLOAT;
@@ -184,7 +187,7 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
     event PublicKeyRegistered(address indexed owner, bytes publickey);
 
     // Channel Related | // This Event is listened by on All Infra Services
-    event AddChannel(address indexed channel, bytes identity);
+    event AddChannel(address indexed channel, ChannelType indexed channelType, bytes identity);
     event UpdateChannel(address indexed channel, bytes identity);
     event DeactivateChannel(address indexed channel);
 
@@ -215,6 +218,12 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
         _;
     }
 
+    /// @dev Testnet only function to check permission from owner
+    modifier onlyChannelizationWhitelist(address _addr) {
+        require ((msg.sender == governance || channelizationWhitelist[_addr] == true), "User not in Channelization Whitelist");
+        _;
+    }
+
     modifier onlyValidUser(address _addr) {
         require(users[_addr].userActivated == true, "User not activated yet");
         _;
@@ -237,9 +246,18 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
 
     modifier onlyChannelOwner(address _channel) {
         require(
-        ((users[_channel].channellized == true && msg.sender == _channel) || (msg.sender == governance && _channel == 0x0000000000000000000000000000000000000000)),
-        "Channel doesn't Exists"
+            ((users[_channel].channellized == true && msg.sender == _channel) || (msg.sender == governance && _channel == 0x0000000000000000000000000000000000000000)),
+            "Channel doesn't Exists"
         );
+        _;
+    }
+
+    modifier onlyUserAllowedChannelType(ChannelType _channelType) {
+        require(
+            (_channelType == ChannelType.InterestBearingOpen || _channelType == ChannelType.InterestBearingMutual),
+            "Channel Type Invalid"
+        );
+
         _;
     }
 
@@ -262,19 +280,29 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
         require(users[_user].graylistedChannels[_channel] == false, "Channel is graylisted");
         _;
     }
-    
+
     function transferGovernance(address _newGovernance) onlyGov public {
         require (_newGovernance != address(0), "EPNSCore::transferGovernance, new governance can't be none");
         require (_newGovernance != governance, "EPNSCore::transferGovernance, new governance can't be current governance");
         governance = _newGovernance;
     }
 
+    /// @dev Testnet only function to enable owner permission for channelizationWhitelist addition
+    function addToChannelizationWhitelist(address _addr) external onlyGov {
+        channelizationWhitelist[_addr] = true;
+    }
+
+    /// @dev Testnet only function  to enable owner permission for channelizationWhitelist removal
+    function removeFromChannelizationWhitelist(address _addr) external onlyGov {
+        channelizationWhitelist[_addr] = false;
+    }
+
     /// @dev Performs action by the user themself to broadcast their public key
     function broadcastUserPublicKey(bytes calldata _publicKey) external {
         // Will save gas
         if (users[msg.sender].publicKeyRegistered == true) {
-        // Nothing to do, user already registered
-        return;
+            // Nothing to do, user already registered
+            return;
         }
 
         // broadcast it
@@ -282,10 +310,10 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
     }
 
     /// @dev Create channel with fees and public key
-    function createChannelWithFeesAndPublicKey(bytes calldata _identity, bytes calldata _publickey)
-        external onlyUserWithNoChannel {
+    function createChannelWithFeesAndPublicKey(ChannelType _channelType, bytes calldata _identity, bytes calldata _publickey)
+    external onlyUserWithNoChannel onlyUserAllowedChannelType(_channelType) {
         // Save gas, Emit the event out
-        emit AddChannel(msg.sender, _identity);
+        emit AddChannel(msg.sender, _channelType, _identity);
 
         // Broadcast public key
         // @TODO Find a way to save cost
@@ -296,16 +324,48 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
         }
 
         // Bubble down to create channel
-        _createChannelWithFees();
+        _createChannelWithFees(msg.sender, _channelType);
     }
 
     /// @dev Create channel with fees
-    function createChannelWithFees(bytes calldata _identity) external onlyUserWithNoChannel {
+    function createChannelWithFees(ChannelType _channelType, bytes calldata _identity)
+    external onlyUserWithNoChannel onlyUserAllowedChannelType(_channelType) {
         // Save gas, Emit the event out
-        emit AddChannel(msg.sender, _identity);
+        emit AddChannel(msg.sender, _channelType, _identity);
 
         // Bubble down to create channel
-        _createChannelWithFees();
+        _createChannelWithFees(msg.sender, _channelType);
+    }
+
+    /// @dev One time, Create Promoter Channel
+    function createPromoterChannel() external {
+        // EPNS PROMOTER CHANNEL
+        require(users[address(this)].channellized == false, "Contract has Promoter");
+
+        // NEED TO HAVE ALLOWANCE OF MINIMUM DAI
+        IERC20(daiAddress).approve(address(this), ADD_CHANNEL_MIN_POOL_CONTRIBUTION);
+
+        // Check if it's equal or above Channel Pool Contribution
+        require(
+            IERC20(daiAddress).allowance(msg.sender, address(this)) >= ADD_CHANNEL_MIN_POOL_CONTRIBUTION,
+            "Insufficient Funds"
+        );
+
+        // Check and transfer funds
+        IERC20(daiAddress).transferFrom(msg.sender, address(this), ADD_CHANNEL_MIN_POOL_CONTRIBUTION);
+
+        // Then Add Promoter Channel
+        emit AddChannel(address(this), ChannelType.ProtocolPromotion, "1+QmRcewnNpdt2DWYuud3LxHTwox2RqQ8uyZWDJ6eY6iHkfn");
+
+        // Call create channel after fees transfer
+        _createChannelAfterTransferOfFees(address(this), ChannelType.ProtocolPromotion, ADD_CHANNEL_MIN_POOL_CONTRIBUTION);
+    }
+
+    /// @dev To update channel, only possible if 1 subscriber is present or this is governance
+    function updateChannelMeta(address _channel, bytes calldata _identity) external {
+        emit UpdateChannel(_channel, _identity);
+
+        _updateChannelMeta(_channel);
     }
 
     /// @dev Deactivate channel
@@ -317,15 +377,15 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
     function subscribeWithPublicKeyDelegated(
         address _channel,
         address _user,
-    bytes calldata _publicKey
+        bytes calldata _publicKey
     ) external onlyActivatedChannels(_channel) onlyNonGraylistedChannel(_channel, _user) {
         // Take delegation fees
         _takeDelegationFees();
 
         // Will save gas as it prevents calldata to be copied unless need be
         if (users[_user].publicKeyRegistered == false) {
-        // broadcast it
-        _broadcastPublicKey(msg.sender, _publicKey);
+            // broadcast it
+            _broadcastPublicKey(msg.sender, _publicKey);
         }
 
         // Call actual subscribe
@@ -346,8 +406,8 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
         // Will save gas as it prevents calldata to be copied unless need be
         if (users[msg.sender].publicKeyRegistered == false) {
 
-        // broadcast it
-        _broadcastPublicKey(msg.sender, _publicKey);
+            // broadcast it
+            _broadcastPublicKey(msg.sender, _publicKey);
         }
 
         // Call actual subscribe
@@ -416,9 +476,9 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
 
         // Next readjust fair share
         (
-            channels[_channel].channelFairShareCount,
-            channels[_channel].channelHistoricalZ,
-            channels[_channel].channelLastUpdate
+        channels[_channel].channelFairShareCount,
+        channels[_channel].channelHistoricalZ,
+        channels[_channel].channelLastUpdate
         ) = _readjustFairShareOfSubscribers(
             SubscriberAction.SubscriberRemoved,
             channels[_channel].channelFairShareCount,
@@ -427,7 +487,11 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
         );
 
         // Next calculate and send the fair share earning of the user from this channel
-        if (channel.channelType == ChannelType.InterestBearingChannel) {
+        if (
+            channel.channelType == ChannelType.ProtocolPromotion
+            || channel.channelType == ChannelType.InterestBearingOpen
+            || channel.channelType == ChannelType.InterestBearingMutual
+        ) {
             _withdrawFundsFromPool(ratio);
         }
 
@@ -445,7 +509,11 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
         for (uint i = 0; i < users[msg.sender].subscribedCount; i++) {
             address channel = users[msg.sender].mapAddressSubscribed[i];
 
-            if (channels[channel].channelType == ChannelType.InterestBearingChannel) {
+            if (
+                channels[channel].channelType == ChannelType.ProtocolPromotion
+                || channels[channel].channelType == ChannelType.InterestBearingOpen
+                || channels[channel].channelType == ChannelType.InterestBearingMutual
+            ) {
                 // Reset last updated block
                 channels[channel].memberLastUpdate[msg.sender] = block.number;
 
@@ -455,10 +523,10 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
                 channels[channel].channelHistoricalZ,
                 channels[channel].channelLastUpdate
                 ) = _readjustFairShareOfSubscribers(
-                SubscriberAction.SubscriberUpdated,
-                channels[channel].channelFairShareCount,
-                channels[channel].channelHistoricalZ,
-                channels[channel].channelLastUpdate
+                    SubscriberAction.SubscriberUpdated,
+                    channels[channel].channelFairShareCount,
+                    channels[channel].channelHistoricalZ,
+                    channels[channel].channelLastUpdate
                 );
 
                 // Calculate share
@@ -595,7 +663,11 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
         uint _block
     ) public view onlySubscribed(_channel, _user) returns (uint ratio) {
         // First get the channel fair share
-        if (channels[_channel].channelType == ChannelType.InterestBearingChannel) {
+        if (
+            channels[_channel].channelType == ChannelType.ProtocolPromotion
+            || channels[_channel].channelType == ChannelType.InterestBearingOpen
+            || channels[_channel].channelType == ChannelType.InterestBearingMutual
+        ) {
             uint channelFS = getChannelFSRatio(_channel, _block);
             uint subscriberFS = getSubscriberFSRatio(_channel, _user, _block);
 
@@ -610,7 +682,11 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
 
         // WARN: This unbounded for loop is an anti-pattern
         for (uint i = 0; i < subscribedCount; i++) {
-            if (channels[users[_user].mapAddressSubscribed[i]].channelType == ChannelType.InterestBearingChannel) {
+            if (
+                channels[users[_user].mapAddressSubscribed[i]].channelType == ChannelType.ProtocolPromotion
+                || channels[users[_user].mapAddressSubscribed[i]].channelType == ChannelType.InterestBearingOpen
+                || channels[users[_user].mapAddressSubscribed[i]].channelType == ChannelType.InterestBearingMutual
+            ) {
                 uint individualChannelShare = calcSingleChannelEarnRatio(users[_user].mapAddressSubscribed[i], _user, _block);
                 ratio = ratio.add(individualChannelShare);
             }
@@ -630,8 +706,8 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
 
             usersCount = usersCount.add(1);
 
-            // Send Welcome Message
-            emit SendNotification(governance, _addr, EPNS_FIRST_MESSAGE_HASH);
+            // Send Welcome Message, Deprecated
+            // emit SendNotification(governance, _addr, EPNS_FIRST_MESSAGE_HASH);
         }
     }
 
@@ -668,10 +744,10 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
     }
 
     /// @dev add channel with fees
-    function _createChannelWithFees() private {
+    function _createChannelWithFees(address _channel, ChannelType _channelType) private {
         // This module should be completely independent from the private _createChannel() so constructor can do it's magic
         // Get the approved allowance
-        uint allowedAllowance = IERC20(daiAddress).allowance(msg.sender, address(this));
+        uint allowedAllowance = IERC20(daiAddress).allowance(_channel, address(this));
 
         // Check if it's equal or above Channel Pool Contribution
         require(
@@ -680,18 +756,18 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
         );
 
         // Check and transfer funds
-        IERC20(daiAddress).safeTransferFrom(msg.sender, address(this), allowedAllowance);
+        IERC20(daiAddress).safeTransferFrom(_channel, address(this), allowedAllowance);
 
+        // Call create channel after fees transfer
+        _createChannelAfterTransferOfFees(_channel, _channelType, allowedAllowance);
+    }
+
+    function _createChannelAfterTransferOfFees(address _channel, ChannelType _channelType, uint _allowedAllowance) private {
         // Deposit funds to pool
-        _depositFundsToPool(allowedAllowance);
-
-        // // Generate a random allowed allowance, for testing Generates 50 to 25000 range
-        // uint allowedAllowance = ((uint(keccak256(abi.encodePacked(block.timestamp, block.difficulty))) % 24950) + 50) * 10 ** 18;
-        // poolFunds = poolFunds.add(allowedAllowance);
-        // Testing Endss
+        _depositFundsToPool(_allowedAllowance);
 
         // Call Create Channel
-        _createChannel(msg.sender, ChannelType.InterestBearingChannel, allowedAllowance);
+        _createChannel(_channel, _channelType, _allowedAllowance);
     }
 
     /// @dev Create channel internal method that runs
@@ -708,6 +784,7 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
         channels[_channel].poolContribution = _amountDeposited;
         channels[_channel].channelType = _channelType;
         channels[_channel].channelStartBlock = block.number;
+        channels[_channel].channelUpdateBlock = block.number;
         channels[_channel].channelWeight = _channelWeight;
 
         // Add to map of addresses and increment channel count
@@ -715,7 +792,11 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
         channelsCount = channelsCount.add(1);
 
         // Readjust fair share if interest bearing
-        if (_channelType == ChannelType.InterestBearingChannel) {
+        if (
+            _channelType == ChannelType.ProtocolPromotion
+            || _channelType == ChannelType.InterestBearingOpen
+            || _channelType == ChannelType.InterestBearingMutual
+        ) {
             (groupFairShareCount, groupNormalizedWeight, groupHistoricalZ, groupLastUpdate) = _readjustFairShareOfChannels(
                 ChannelAction.ChannelAdded,
                 _channelWeight,
@@ -743,6 +824,21 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
         }
     }
 
+    /// @dev private function to update channel meta
+    function _updateChannelMeta(address _channel) internal onlyChannelOwner(_channel) onlyActivatedChannels(_channel) {
+        // check if special channel
+        if (msg.sender == governance && (_channel == governance || _channel == 0x0000000000000000000000000000000000000000 || _channel == address(this))) {
+            // don't do check for 1 as these are special channels
+
+        }
+        else {
+            // do check for 1
+            require (channels[_channel].memberCount == 1, "Channel has external subscribers");
+        }
+
+        channels[msg.sender].channelUpdateBlock = block.number;
+    }
+
     /// @dev private function that eventually handles the subscribing onlyValidChannel(_channel)
     function _subscribe(address _channel, address _user) private onlyNonSubscribed(_channel, _user) {
         // Add the user, will do nothing if added already, but is needed for all outpoints
@@ -767,9 +863,9 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
 
         // Next readjust fair share and that's it
         (
-            channels[_channel].channelFairShareCount,
-            channels[_channel].channelHistoricalZ,
-            channels[_channel].channelLastUpdate
+        channels[_channel].channelFairShareCount,
+        channels[_channel].channelHistoricalZ,
+        channels[_channel].channelLastUpdate
         ) = _readjustFairShareOfSubscribers(
             SubscriberAction.SubscriberAdded,
             channels[_channel].channelFairShareCount,
@@ -806,7 +902,7 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
         lendingPool.deposit(daiAddress, amount, uint16(REFERRAL_CODE)); // set to 0 in constructor presently
     }
 
-        /// @dev withdraw funds from pool
+    /// @dev withdraw funds from pool
     function _withdrawFundsFromPool(uint ratio) private nonReentrant {
         uint totalBalanceWithProfit = IERC20(aDaiAddress).balanceOf(address(this));
 
@@ -932,7 +1028,7 @@ contract EPNSCoreV2 is Initializable, ReentrancyGuard  {
             channelModCount = channelModCount.sub(1);
         }
         else if (action == SubscriberAction.SubscriberUpdated) {
-        // do nothing, it's happening after a reset of subscriber last update count
+            // do nothing, it's happening after a reset of subscriber last update count
 
         }
         else {

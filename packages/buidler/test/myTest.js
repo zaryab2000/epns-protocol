@@ -8,7 +8,6 @@ const {
   increase,
   increaseTo,
   latest,
-  advanceBlockBy,
 } = require("./time");
 
 use(solidity);
@@ -77,6 +76,7 @@ const delay = 0; // uint for the timelock delay
 const forkAddress = {
   address: "0xe2a6cf5f463df94147a0f0a302c879eb349cb2cd",
 };
+
 let EPNS;
 let GOVERNOR;
 let LOGIC;
@@ -201,7 +201,7 @@ describe("EPNS Stack", function () {
 
   describe("ProxyAdmin", function () {
     it("Should deploy a ProxyAdmin Contract", async function () {
-      const proxyAdmin = await ethers.getContractFactory("ProxyAdmin");
+      const proxyAdmin = await ethers.getContractFactory("EPNSAdmin");
       GOVERNOR = await proxyAdmin.deploy();
     });
   });
@@ -209,7 +209,6 @@ describe("EPNS Stack", function () {
   describe("EPNSProxy", function () {
     it("Should deploy EPNS Core Proxy", async function () {
       const EPNSPROXYContract = await ethers.getContractFactory("EPNSProxy");
-
       EPNSProxy = await EPNSPROXYContract.deploy(
         LOGIC.address,
         ADMIN,
@@ -219,6 +218,13 @@ describe("EPNS Stack", function () {
         referralCode
       );
     });
+
+    it("Should Change the admin to the ProxyAdmin", async function () {
+      await EPNSProxy.changeAdmin(GOVERNOR.address);
+    });
+    // it("Should upgrade Proxy via the Proxy Admin to the new v2 logic", async function () {
+    //   await GOVERNOR.upgrade(EPNSProxy.address, LOGICV2.address);
+    // });
   });
 
   // describe("EPNSProxy - Upgrade Logic to V2 Contract", function () {
@@ -277,14 +283,6 @@ describe("EPNS Stack", function () {
   //   });
   // });
 
-  describe("EPNS - Change Admin to ProxyAdmin", async function () {
-    let changeAdminTx = await EPNSProxy.changeAdmin(GOVERNOR.address);
-  });
-
-  describe("EPNS - Upgrade Proxy to Logic V2", async function () {
-    let upgradeTx = await GOVERNOR.upgrade(EPNSProxy.address, LOGICV2.address);
-  });
-
   describe("EPNS - Share Fair Ratio", function () {
     it("Should mint 10000 DAI as account 0 and transfer 100 to ALICE and BOB", async function () {
       const mockDAI = await ethers.getContractAt(
@@ -292,9 +290,9 @@ describe("EPNS Stack", function () {
         DAI,
         CHANNEL_CREATORSIGNER
       );
-      const creatorBalance = ethers.utils.formatEther(10000);
-      await mockDAI.mint(creatorBalance);
-      const userBalance = ethers.utils.formatEther(1000);
+      await mockDAI.mint(ethers.utils.parseEther("10000.00"));
+      await mockDAI.approve(EPNSProxy.address, ethers.utils.parseEther("500"));
+      const userBalance = ethers.utils.parseEther("1000");
 
       await mockDAI.transfer(CHANNEL_CREATOR, userBalance);
       await mockDAI.transfer(ALICE, userBalance);
@@ -320,7 +318,7 @@ describe("EPNS Stack", function () {
       await mockDAICharlie.approve(EPNSProxy.address, 1000);
     });
 
-    it("Whitelist channel creator address and create channel", async function () {
+    it("Whitelist channel creator address ", async function () {
       const lEPNS = await ethers.getContractAt(
         "EPNSCore",
         EPNSProxy.address,
@@ -328,13 +326,16 @@ describe("EPNS Stack", function () {
       );
 
       await lEPNS.addToChannelizationWhitelist(CHANNEL_CREATOR);
+    });
+
+    it("should create a channel and subscribe users to it", async function () {
       const createChannelEPNS = await ethers.getContractAt(
         "EPNSCore",
         EPNSProxy.address,
         CHANNEL_CREATORSIGNER
       );
 
-      const testChannel = coder.encode(["bytes"], [["nonsense data"]]);
+      const testChannel = ethers.utils.toUtf8Bytes("test-channel-hello-world");
       console.log(`Test Channel Bytes is : ${testChannel}`);
 
       await createChannelEPNS.createChannelWithFees(testChannel);
@@ -342,37 +343,47 @@ describe("EPNS Stack", function () {
       // randomize the entrance sets
 
       const randomEntrance = [
-        [ALICE, Math.floor(Math.random() * 100)],
-        [BOB, Math.floor(Math.random() * 100)],
-        [CHARLIE, Math.floor(Math.random() * 100)],
+        [ALICE, ALICESIGNER, Math.floor(Math.random() * 100)],
+        [BOB, BOBSIGNER, Math.floor(Math.random() * 100)],
+        [CHARLIE, CHARLIESIGNER, Math.floor(Math.random() * 100)],
       ];
-      const currentBlock = latestBlock().toString();
+      let currentBlock = (await latestBlock()).toNumber();
 
-      const channelFairShare = await lEPNS.getChannelFSRatio(
-        CHANNEL_CREATOR,
-        currentBlock
-      );
-
-      randomEntrance.foreach(async (el) => {
-        const [signer, blockDiff] = el;
-
-        await lEPNS.subscribe(CHANNEL_CREATOR, { from: signer });
-        await advanceBlockBy(blockDiff);
-        const subscriberFairShare = await lEPNS.getSubscriberFSRatio(
-          signer,
-          CHANNEL_CREATOR,
-          currentBlock + blockDiff
+      for (let x = 0; x < randomEntrance.length; x++) {
+        const [signerAddress, signer, blockDiff] = randomEntrance[x];
+        console.log(blockDiff);
+        const epns = await ethers.getContractAt(
+          "EPNSCore",
+          EPNSProxy.address,
+          signer
         );
 
-        console.log(
-          `subscriberFairShare: ${signer} has a ratio of ${subscriberFairShare}`
-        );
-      });
+        // eslint-disable-next-line no-multi-assign
+        const advanceTo = (currentBlock += blockDiff);
+        await epns.subscribe(CHANNEL_CREATOR);
+
+        await advanceBlockTo(advanceTo.toString());
+
+        // eslint-disable-next-line no-restricted-syntax
+        for (let i = 0; i <= x; i++) {
+          const [signerAddress, signer, blockDiff] = randomEntrance[i];
+
+          // eslint-disable-next-line no-await-in-loop
+          const subscriberFairShare = await epns.getSubscriberFSRatio(
+            CHANNEL_CREATOR,
+            signerAddress,
+            (await latestBlock()).toString()
+          );
+
+          console.log(
+            `subscriberFairShare: ${signerAddress} has a ratio of ${subscriberFairShare}`
+          );
+        }
+      }
       //
       // // calc fairshare of each
       // // assert values
       // // randomize the unsubscribe set
-      // await advanceBlockBy(100);
 
       // asset fair share ratios
     });
