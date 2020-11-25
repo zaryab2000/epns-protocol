@@ -377,7 +377,9 @@ describe("EPNS Stack", function () {
           );
 
           console.log(
-            `subscriberFairShare: ${signerAddress} has a ratio of ${subscriberFairShare}`
+            `subscriberFairShare: ${signerAddress} has a ratio of ${
+              subscriberFairShare / 10e7
+            }` // adjusted for float
           );
         }
       }
