@@ -291,6 +291,13 @@ contract EPNSCoreV2 is VersionedInitializable, ReentrancyGuard  {
         return 2;
     }
 
+
+    function initialize() external initializer {
+        // will just update the revision of nothing else
+        // do any state updates required here
+    }
+
+
     /// @dev Testnet only function to enable owner permission for channelizationWhitelist addition
     function addToChannelizationWhitelist(address _addr) external onlyGov {
         channelizationWhitelist[_addr] = true;

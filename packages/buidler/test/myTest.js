@@ -79,6 +79,7 @@ const forkAddress = {
 
 let EPNS;
 let GOVERNOR;
+let PROXYADMIN;
 let LOGIC;
 let LOGICV2;
 let EPNSProxy;
@@ -151,58 +152,59 @@ describe("EPNS Stack", function () {
     });
   });
 
-  // describe("Timelock", function () {
-  //   it("Should deploy A Timelock", async function () {
-  //     const TimeLock = await ethers.getContractFactory("Timelock");
-  //
-  //     TIMELOCK = await TimeLock.deploy(ADMIN, delay);
-  //   });
-  // });
+  describe("Timelock", function () {
+    it("Should deploy A Timelock", async function () {
+      const TimeLock = await ethers.getContractFactory("Timelock");
 
-  // describe("GovernorAlpha", function () {
-  //   it("Should deploy GovernorAlpha Platform", async function () {
-  //     const GovernorAlpha = await ethers.getContractFactory("GovernorAlpha");
-  //
-  //     GOVERNOR = await GovernorAlpha.deploy(
-  //       TIMELOCK.address,
-  //       EPNS.address,
-  //       ADMIN
-  //     );
-  //
-  //     const eta = (await latest()).toNumber();
-  //
-  //     const data = coder.encode(["address"], [GOVERNOR.address]);
-  //
-  //     await TIMELOCK.functions.queueTransaction(
-  //       TIMELOCK.address,
-  //       "0",
-  //       "setPendingAdmin(address)",
-  //       data,
-  //       eta + 1
-  //     );
-  //
-  //     // await increaseTo(eta + 200);
-  //     await advanceBlock();
-  //     await advanceBlock();
-  //
-  //     await TIMELOCK.functions.executeTransaction(
-  //       TIMELOCK.address,
-  //       "0",
-  //       "setPendingAdmin(address)",
-  //       data,
-  //       eta + 1
-  //     );
-  //
-  //     await GOVERNOR.functions.__acceptAdmin();
-  //     // eslint-disable-next-line no-underscore-dangle
-  //     await GOVERNOR.functions.__abdicate();
-  //   });
-  // });
+      TIMELOCK = await TimeLock.deploy(ADMIN, delay);
+    });
+  });
+
+  describe("GovernorAlpha", function () {
+    it("Should deploy GovernorAlpha Platform", async function () {
+      const GovernorAlpha = await ethers.getContractFactory("GovernorAlpha");
+
+      GOVERNOR = await GovernorAlpha.deploy(
+        TIMELOCK.address,
+        EPNS.address,
+        ADMIN
+      );
+
+      const eta = (await latest()).toNumber();
+
+      const data = coder.encode(["address"], [GOVERNOR.address]);
+
+      await TIMELOCK.functions.queueTransaction(
+        TIMELOCK.address,
+        "0",
+        "setPendingAdmin(address)",
+        data,
+        eta + 1
+      );
+
+      // await increaseTo(eta + 200);
+      await advanceBlock();
+      await advanceBlock();
+
+      await TIMELOCK.functions.executeTransaction(
+        TIMELOCK.address,
+        "0",
+        "setPendingAdmin(address)",
+        data,
+        eta + 1
+      );
+
+      await GOVERNOR.functions.__acceptAdmin();
+      // eslint-disable-next-line no-underscore-dangle
+      await GOVERNOR.functions.__abdicate();
+    });
+  });
 
   describe("ProxyAdmin", function () {
     it("Should deploy a ProxyAdmin Contract", async function () {
       const proxyAdmin = await ethers.getContractFactory("EPNSAdmin");
-      GOVERNOR = await proxyAdmin.deploy();
+      PROXYADMIN = await proxyAdmin.deploy();
+      await PROXYADMIN.transferOwnership(TIMELOCK.address);
     });
   });
 
@@ -220,68 +222,72 @@ describe("EPNS Stack", function () {
     });
 
     it("Should Change the admin to the ProxyAdmin", async function () {
-      await EPNSProxy.changeAdmin(GOVERNOR.address);
+      await EPNSProxy.changeAdmin(PROXYADMIN.address);
     });
-    // it("Should upgrade Proxy via the Proxy Admin to the new v2 logic", async function () {
-    //   await GOVERNOR.upgrade(EPNSProxy.address, LOGICV2.address);
-    // });
   });
 
-  // describe("EPNSProxy - Upgrade Logic to V2 Contract", function () {
-  //   let proposalTx;
-  //   let proposalId;
-  //   it("Admin will delegate all votes to admin", async function () {
-  //     // need to delegate tokens to make proposalsconst [adminSigner, aliceSigner, bobSigner] = await ethers.getSigners();
-  //     //
-  //     //   const admin = await adminSigner.getAddress();
-  //     await EPNS.functions.delegate(ADMIN);
-  //   });
-  //
-  //   it("Admin will create a new proposal and vote for it", async function () {
-  //     // proposal steps
-  //     const targets = [EPNSProxy.address];
-  //     const values = ["0x0"];
-  //     const signatures = ["upgradeTo(address)"];
-  //     const data = coder.encode(["address"], [LOGICV2.address]);
-  //     const calldatas = [data];
-  //     const description = "ipfs://wip"; // ipfs hash
-  //
-  //     proposalTx = await GOVERNOR.functions.propose(
-  //       targets,
-  //       values,
-  //       signatures,
-  //       calldatas,
-  //       description
-  //     );
-  //     const receipt = await proposalTx.wait();
-  //
-  //     proposalId = receipt.events[0].args[0].toString();
-  //
-  //     await advanceBlock();
-  //     await GOVERNOR.functions.castVote(proposalId, true); // vote in support of the proposal
-  //
-  //     // move time into the future whatever the timeout of the prposal is set to
-  //   });
-  //
-  //   it("Admin will queue the finalized proposal", async function () {
-  //     // await increase(259300);
-  //     const currBlock = await latestBlock();
-  //     console.log(currBlock.toNumber());
-  //     const votingPeriod = await GOVERNOR.functions.votingPeriod();
-  //     console.log(votingPeriod);
-  //     const advance = currBlock.toNumber() + votingPeriod[0].toNumber() + 1;
-  //     console.log(advance);
-  //     await advanceBlockTo(advance);
-  //     await GOVERNOR.functions.queue(proposalId);
-  //
-  //     // pass time until timelock
-  //   }).timeout(100000);
-  //
-  //   it("Admin execute the proposal.", async function () {
-  //     await increase(172900);
-  //     await GOVERNOR.functions.execute(proposalId);
-  //   });
-  // });
+  describe("EPNSProxy - Upgrade Logic to V2 Contract", function () {
+    let proposalTx;
+    let proposalId;
+    it("Admin will delegate all votes to admin", async function () {
+      // need to delegate tokens to make proposalsconst [adminSigner, aliceSigner, bobSigner] = await ethers.getSigners();
+      //
+      //   const admin = await adminSigner.getAddress();
+      await EPNS.functions.delegate(ADMIN);
+    });
+
+    it("Admin will create a new proposal and vote for it", async function () {
+      // proposal steps
+
+      const targets = [PROXYADMIN.address];
+      const values = ["0x0"];
+      const fragment = LOGICV2.interface.getFunction("initialize");
+      const upgradeData = LOGICV2.interface.encodeFunctionData(fragment, []);
+      console.log(upgradeData);
+      const signatures = ["upgradeAndCall(address,address,bytes)"];
+      const data = coder.encode(
+        ["address", "address", "bytes"],
+        [EPNSProxy.address, LOGICV2.address, upgradeData]
+      );
+      const calldatas = [data];
+      const description = "ipfs://wip"; // ipfs hash
+
+      proposalTx = await GOVERNOR.functions.propose(
+        targets,
+        values,
+        signatures,
+        calldatas,
+        description
+      );
+      const receipt = await proposalTx.wait();
+
+      proposalId = receipt.events[0].args[0].toString();
+
+      await advanceBlock();
+      await GOVERNOR.functions.castVote(proposalId, true); // vote in support of the proposal
+
+      // move time into the future whatever the timeout of the prposal is set to
+    });
+
+    it("Admin will queue the finalized proposal", async function () {
+      await increase(259300);
+      const currBlock = await latestBlock();
+      console.log(currBlock.toNumber());
+      const votingPeriod = await GOVERNOR.functions.votingPeriod();
+      console.log(votingPeriod);
+      const advance = currBlock.toNumber() + votingPeriod[0].toNumber() + 1;
+      console.log(advance);
+      await advanceBlockTo(advance);
+      await GOVERNOR.functions.queue(proposalId);
+
+      // pass time until timelock
+    }).timeout(100000);
+
+    it("Admin execute the proposal.", async function () {
+      await increase(172900);
+      await GOVERNOR.functions.execute(proposalId);
+    });
+  });
 
   describe("EPNS - Share Fair Ratio", function () {
     it("Should mint 10000 DAI as account 0 and transfer 100 to ALICE and BOB", async function () {
@@ -350,9 +356,10 @@ describe("EPNS Stack", function () {
       ];
       let currentBlock = (await latestBlock()).toNumber();
 
+      // eslint-disable-next-line no-plusplus
       for (let x = 0; x < randomEntrance.length; x++) {
         const [signerAddress, signer, blockDiff] = randomEntrance[x];
-        console.log(blockDiff);
+        console.log(`Block Differential for ${signerAddress}: ${blockDiff}`);
         const epns = await ethers.getContractAt(
           "EPNSCoreV1",
           EPNSProxy.address,
@@ -365,7 +372,7 @@ describe("EPNS Stack", function () {
 
         await advanceBlockTo(advanceTo.toString());
 
-        // eslint-disable-next-line no-restricted-syntax
+        // eslint-disable-next-line no-restricted-syntax,no-plusplus
         for (let i = 0; i <= x; i++) {
           const [signerAddress, signer, blockDiff] = randomEntrance[i];
 
@@ -373,7 +380,7 @@ describe("EPNS Stack", function () {
           const subscriberFairShare = await epns.getSubscriberFSRatio(
             CHANNEL_CREATOR,
             signerAddress,
-            (await latestBlock()).toString()
+            advanceTo
           );
 
           console.log(
@@ -383,12 +390,6 @@ describe("EPNS Stack", function () {
           );
         }
       }
-      //
-      // // calc fairshare of each
-      // // assert values
-      // // randomize the unsubscribe set
-
-      // asset fair share ratios
     });
   });
 });
