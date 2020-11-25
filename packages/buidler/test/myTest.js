@@ -135,11 +135,11 @@ describe("EPNS Stack", function () {
     });
   });
 
-  describe("EPNSCore Logic", function () {
+  describe("EPNSCoreV1 Logic", function () {
     it("Should deploy the EPNS Core Logic", async function () {
-      const EPNSCore = await ethers.getContractFactory("EPNSCore");
+      const EPNSCoreV1 = await ethers.getContractFactory("EPNSCoreV1");
 
-      LOGIC = await EPNSCore.deploy();
+      LOGIC = await EPNSCoreV1.deploy();
     });
   });
 
@@ -320,7 +320,7 @@ describe("EPNS Stack", function () {
 
     it("Whitelist channel creator address ", async function () {
       const lEPNS = await ethers.getContractAt(
-        "EPNSCore",
+        "EPNSCoreV1",
         EPNSProxy.address,
         ADMINSIGNER
       );
@@ -329,8 +329,9 @@ describe("EPNS Stack", function () {
     });
 
     it("should create a channel and subscribe users to it", async function () {
+      const CHANNEL_TYPE = 2;
       const createChannelEPNS = await ethers.getContractAt(
-        "EPNSCore",
+        "EPNSCoreV1",
         EPNSProxy.address,
         CHANNEL_CREATORSIGNER
       );
@@ -338,7 +339,7 @@ describe("EPNS Stack", function () {
       const testChannel = ethers.utils.toUtf8Bytes("test-channel-hello-world");
       console.log(`Test Channel Bytes is : ${testChannel}`);
 
-      await createChannelEPNS.createChannelWithFees(testChannel);
+      await createChannelEPNS.createChannelWithFees(CHANNEL_TYPE, testChannel);
 
       // randomize the entrance sets
 
@@ -353,7 +354,7 @@ describe("EPNS Stack", function () {
         const [signerAddress, signer, blockDiff] = randomEntrance[x];
         console.log(blockDiff);
         const epns = await ethers.getContractAt(
-          "EPNSCore",
+          "EPNSCoreV1",
           EPNSProxy.address,
           signer
         );
