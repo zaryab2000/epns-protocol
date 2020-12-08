@@ -6,13 +6,13 @@ contract EPNS {
     string public name = "Ethereum Push Notifications";
 
     /// @notice EIP-20 token symbol for this token
-    string public symbol = "EPNS";
+    string public symbol = "PUSH";
 
     /// @notice EIP-20 token decimals for this token
     uint8 public decimals = 18;
 
     /// @notice Total number of tokens in circulation
-    uint public totalSupply = 100000000e18; // 100 million EPNS
+    uint public totalSupply = 100_000_000e18; // 100 million PUSH
 
     /// @notice Allowance amounts on behalf of others
     mapping (address => mapping (address => uint96)) internal allowances;
@@ -206,6 +206,48 @@ contract EPNS {
         require(blockNumber < block.number, "EPNS::getPriorVotes: not yet determined");
 
         uint32 nCheckpoints = numCheckpoints[account];
+        if (nCheckpoints == 0) {
+            return 0;
+        }
+
+        // First check most recent balance
+        if (checkpoints[account][nCheckpoints - 1].fromBlock <= blockNumber) {
+            return checkpoints[account][nCheckpoints - 1].votes;
+        }
+
+        // Next check implicit zero balance
+        if (checkpoints[account][0].fromBlock > blockNumber) {
+            return 0;
+        }
+
+        uint32 lower = 0;
+        uint32 upper = nCheckpoints - 1;
+        while (upper > lower) {
+            uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
+            Checkpoint memory cp = checkpoints[account][center];
+            if (cp.fromBlock == blockNumber) {
+                return cp.votes;
+            } else if (cp.fromBlock < blockNumber) {
+                lower = center;
+            } else {
+                upper = center - 1;
+            }
+        }
+        return checkpoints[account][lower].votes;
+    }
+
+
+    /**
+     * @notice Determine the prior number of votes for an account as of a block number
+     * @dev Block number must be a finalized block or else this function will revert to prevent misinformation.
+     * @param account The address of the account to check
+     * @param blockNumber The block number to get the vote balance at
+     * @return The number of votes the account had as of the given block
+     */
+    function getPriorFSRatio(address account, uint blockNumber) public view returns (uint96) {
+        require(blockNumber < block.number, "EPNS::getPriorVotes: not yet determined");
+
+        uint32 nCheckpoints = numFSCheckpoints[account];
         if (nCheckpoints == 0) {
             return 0;
         }

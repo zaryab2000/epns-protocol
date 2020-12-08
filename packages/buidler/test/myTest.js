@@ -82,6 +82,7 @@ let GOVERNOR;
 let PROXYADMIN;
 let LOGIC;
 let LOGICV2;
+let LOGICV3;
 let EPNSProxy;
 let TIMELOCK;
 let ADMIN;
@@ -149,6 +150,13 @@ describe("EPNS Stack", function () {
       const EPNSCoreV2 = await ethers.getContractFactory("EPNSCoreV2");
 
       LOGICV2 = await EPNSCoreV2.deploy();
+    });
+  });
+  describe("EPNSCoreV2 Logic", function () {
+    it("Should deploy the EPNS CoreV2 Logic", async function () {
+      const EPNSCoreV3 = await ethers.getContractFactory("EPNSCoreV3");
+
+      LOGICV3 = await EPNSCoreV3.deploy();
     });
   });
 
@@ -224,6 +232,15 @@ describe("EPNS Stack", function () {
     it("Should Change the admin to the ProxyAdmin", async function () {
       await EPNSProxy.changeAdmin(PROXYADMIN.address);
     });
+    it("Whitelist channel creator address ", async function () {
+      const lEPNS = await ethers.getContractAt(
+        "EPNSCoreV1",
+        EPNSProxy.address,
+        ADMINSIGNER
+      );
+
+      await lEPNS.addToChannelizationWhitelist(CHANNEL_CREATOR);
+    });
   });
 
   describe("EPNSProxy - Upgrade Logic to V2 Contract", function () {
@@ -241,13 +258,75 @@ describe("EPNS Stack", function () {
 
       const targets = [PROXYADMIN.address];
       const values = ["0x0"];
-      const fragment = LOGICV2.interface.getFunction("initialize");
+      const fragment = LOGICV2.interface.getFunction("initializeUpgrade");
       const upgradeData = LOGICV2.interface.encodeFunctionData(fragment, []);
-      console.log(upgradeData);
+
       const signatures = ["upgradeAndCall(address,address,bytes)"];
       const data = coder.encode(
         ["address", "address", "bytes"],
         [EPNSProxy.address, LOGICV2.address, upgradeData]
+      );
+      const calldatas = [data];
+      const description = "ipfs://wip"; // ipfs hash
+
+      proposalTx = await GOVERNOR.functions.propose(
+        targets,
+        values,
+        signatures,
+        calldatas,
+        description
+      );
+      const receipt = await proposalTx.wait();
+
+      proposalId = receipt.events[0].args[0].toString();
+
+      await advanceBlock();
+      await GOVERNOR.functions.castVote(proposalId, true); // vote in support of the proposal
+
+      // move time into the future whatever the timeout of the prposal is set to
+    });
+
+    it("Admin will queue the finalized proposal", async function () {
+      await increase(259300);
+      const currBlock = await latestBlock();
+      console.log(currBlock.toNumber());
+      const votingPeriod = await GOVERNOR.functions.votingPeriod();
+      console.log(votingPeriod);
+      const advance = currBlock.toNumber() + votingPeriod[0].toNumber() + 1;
+      console.log(advance);
+      await advanceBlockTo(advance);
+      await GOVERNOR.functions.queue(proposalId);
+
+      // pass time until timelock
+    }).timeout(100000);
+
+    it("Admin execute the proposal.", async function () {
+      await increase(172900);
+      await GOVERNOR.functions.execute(proposalId);
+    });
+  });
+  describe("EPNSProxy - Upgrade Logic to V3 Contract", function () {
+    let proposalTx;
+    let proposalId;
+    it("Admin will delegate all votes to admin", async function () {
+      // need to delegate tokens to make proposalsconst [adminSigner, aliceSigner, bobSigner] = await ethers.getSigners();
+      //
+      //   const admin = await adminSigner.getAddress();
+      await EPNS.functions.delegate(ADMIN);
+    });
+
+    it("Admin will create a new proposal and vote for it", async function () {
+      // proposal steps
+
+      const targets = [PROXYADMIN.address];
+      const values = ["0x0"];
+      const fragment = LOGICV3.interface.getFunction("initializeUpgrade");
+      const upgradeData = LOGICV3.interface.encodeFunctionData(fragment, []);
+
+      const signatures = ["upgradeAndCall(address,address,bytes)"];
+      const data = coder.encode(
+        ["address", "address", "bytes"],
+        [EPNSProxy.address, LOGICV3.address, upgradeData]
       );
       const calldatas = [data];
       const description = "ipfs://wip"; // ipfs hash
@@ -324,20 +403,10 @@ describe("EPNS Stack", function () {
       await mockDAICharlie.approve(EPNSProxy.address, 1000);
     });
 
-    it("Whitelist channel creator address ", async function () {
-      const lEPNS = await ethers.getContractAt(
-        "EPNSCoreV1",
-        EPNSProxy.address,
-        ADMINSIGNER
-      );
-
-      await lEPNS.addToChannelizationWhitelist(CHANNEL_CREATOR);
-    });
-
     it("should create a channel and subscribe users to it", async function () {
       const CHANNEL_TYPE = 2;
       const createChannelEPNS = await ethers.getContractAt(
-        "EPNSCoreV1",
+        "EPNSCoreV3",
         EPNSProxy.address,
         CHANNEL_CREATORSIGNER
       );

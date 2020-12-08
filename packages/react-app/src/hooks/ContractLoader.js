@@ -4,7 +4,8 @@ import { Contract } from "@ethersproject/contracts";
 import { useState, useEffect } from "react";
 
 const loadContract = (contractName, signer, contractAddressOverride) => {
-  console.log(contractAddressOverride)
+  console.log(contractAddressOverride);
+  debugger;
   const newContract = new Contract(
     require(`../contracts/${contractAddressOverride || contractName}.address.js`),
     require(`../contracts/${contractName}.abi.js`),

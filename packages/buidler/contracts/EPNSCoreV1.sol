@@ -3,9 +3,9 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "./VerzionedInitializable.sol";
 import "hardhat/console.sol";
 
 interface ILendingPoolAddressesProvider {
@@ -49,7 +49,7 @@ interface ILendingPool {
 
 interface IEPNSCore {}
 
-contract EPNSCoreV1 is VersionedInitializable, ReentrancyGuard  {
+contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
     using SafeMath for uint;
     using SafeERC20 for IERC20;
 
@@ -206,9 +206,9 @@ contract EPNSCoreV1 is VersionedInitializable, ReentrancyGuard  {
     event Withdrawal(address indexed to, address token, uint amount);
 
 
-    function getRevision() internal override pure returns (uint256) {
-        return 1;
-    }
+//    function getRevision() internal override pure returns (uint256) {
+//        return 1;
+//    }
 
     /* ***************
     * INITIALIZER,

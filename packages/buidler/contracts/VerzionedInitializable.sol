@@ -24,25 +24,25 @@ abstract contract VersionedInitializable {
     /**
    * @dev Indicates that the contract is in the process of being initialized.
    */
-    bool private initializing;
+    bool private _initializing;
 
     /**
    * @dev Modifier to use in the initializer function of a contract.
    */
-    modifier initializer() {
+    modifier initializerV() {
         uint256 revision = getRevision();
-        require(initializing || isConstructor() || revision > lastInitializedRevision, "Contract instance has already been initialized");
+        require(_initializing || isConstructor() || revision > lastInitializedRevision, "Contract instance has already been initialized");
 
-        bool isTopLevelCall = !initializing;
+        bool isTopLevelCall = !_initializing;
         if (isTopLevelCall) {
-            initializing = true;
+            _initializing = true;
             lastInitializedRevision = revision;
         }
 
         _;
 
         if (isTopLevelCall) {
-            initializing = false;
+            _initializing = false;
         }
     }
 
