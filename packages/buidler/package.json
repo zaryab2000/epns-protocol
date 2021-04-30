@@ -23,7 +23,7 @@
     "node-watch": "^0.6.4"
   },
   "scripts": {
-    "chain": "hardhat node --network hardhat --fork",
+    "chain": "hardhat node --network hardhat",
     "test": "hardhat test --network hardhat",
     "compile": "hardhat compile",
     "deploy": "hardhat run scripts/deploy.js && hardhat run scripts/publish.js",
