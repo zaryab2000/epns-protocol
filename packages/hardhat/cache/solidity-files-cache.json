@@ -1,0 +1,868 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "/home/manjain/Documents/epns/epns-protocol/packages/hardhat/contracts/EPNS.sol": {
+      "lastModificationDate": 1620049869370,
+      "contentHash": "a5f3fbe564dd1c431f510ed35b2679e7",
+      "sourceName": "contracts/EPNS.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.6.0 <0.7.0"
+      ],
+      "artifacts": [
+        "EPNS"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/packages/hardhat/contracts/EPNSAdmin.sol": {
+      "lastModificationDate": 1620049869370,
+      "contentHash": "b25382a7b43387c6b7507751312f0051",
+      "sourceName": "contracts/EPNSAdmin.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/proxy/ProxyAdmin.sol"
+      ],
+      "versionPragmas": [
+        "^0.6.0"
+      ],
+      "artifacts": [
+        "EPNSAdmin"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/node_modules/@openzeppelin/contracts/proxy/ProxyAdmin.sol": {
+      "lastModificationDate": 1620051819356,
+      "contentHash": "1fb4daec0de5a54ffe01e92fc9cc5aa4",
+      "sourceName": "@openzeppelin/contracts/proxy/ProxyAdmin.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../access/Ownable.sol",
+        "./TransparentUpgradeableProxy.sol"
+      ],
+      "versionPragmas": [
+        ">=0.6.0 <0.8.0"
+      ],
+      "artifacts": [
+        "ProxyAdmin"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/node_modules/@openzeppelin/contracts/access/Ownable.sol": {
+      "lastModificationDate": 1620051819342,
+      "contentHash": "38c56382c57a9e9dab92cee051155870",
+      "sourceName": "@openzeppelin/contracts/access/Ownable.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../GSN/Context.sol"
+      ],
+      "versionPragmas": [
+        ">=0.6.0 <0.8.0"
+      ],
+      "artifacts": [
+        "Ownable"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/node_modules/@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol": {
+      "lastModificationDate": 1620051819356,
+      "contentHash": "c6d0338de5744b70a7c6cdcda5310a99",
+      "sourceName": "@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./UpgradeableProxy.sol"
+      ],
+      "versionPragmas": [
+        ">=0.6.0 <0.8.0"
+      ],
+      "artifacts": [
+        "TransparentUpgradeableProxy"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/node_modules/@openzeppelin/contracts/GSN/Context.sol": {
+      "lastModificationDate": 1620051819342,
+      "contentHash": "2adbd82f6d055a4751566d4671512b03",
+      "sourceName": "@openzeppelin/contracts/GSN/Context.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.6.0 <0.8.0"
+      ],
+      "artifacts": [
+        "Context"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/node_modules/@openzeppelin/contracts/proxy/UpgradeableProxy.sol": {
+      "lastModificationDate": 1620051819356,
+      "contentHash": "686980f2a53d793b815368f676364b8e",
+      "sourceName": "@openzeppelin/contracts/proxy/UpgradeableProxy.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./Proxy.sol",
+        "../utils/Address.sol"
+      ],
+      "versionPragmas": [
+        ">=0.6.0 <0.8.0"
+      ],
+      "artifacts": [
+        "UpgradeableProxy"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/node_modules/@openzeppelin/contracts/proxy/Proxy.sol": {
+      "lastModificationDate": 1620051819356,
+      "contentHash": "a6f1021015ca14abd4852d6a1e22861c",
+      "sourceName": "@openzeppelin/contracts/proxy/Proxy.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.6.0 <0.8.0"
+      ],
+      "artifacts": [
+        "Proxy"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/node_modules/@openzeppelin/contracts/utils/Address.sol": {
+      "lastModificationDate": 1620051819355,
+      "contentHash": "72d77402f6854b7ccf9af282e805f292",
+      "sourceName": "@openzeppelin/contracts/utils/Address.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.6.2 <0.8.0"
+      ],
+      "artifacts": [
+        "Address"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/packages/hardhat/contracts/EPNSProxy.sol": {
+      "lastModificationDate": 1620049869371,
+      "contentHash": "c4b27c31c4db1622d37343a674330e83",
+      "sourceName": "contracts/EPNSProxy.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol"
+      ],
+      "versionPragmas": [
+        "^0.6.0"
+      ],
+      "artifacts": [
+        "EPNSProxy"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/node_modules/@openzeppelin/contracts/token/ERC20/SafeERC20.sol": {
+      "lastModificationDate": 1620051829534,
+      "contentHash": "33e22842646d746e5c4124c2fdc051aa",
+      "sourceName": "@openzeppelin/contracts/token/ERC20/SafeERC20.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./IERC20.sol",
+        "../../math/SafeMath.sol",
+        "../../utils/Address.sol"
+      ],
+      "versionPragmas": [
+        ">=0.6.0 <0.8.0"
+      ],
+      "artifacts": [
+        "SafeERC20"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol": {
+      "lastModificationDate": 1620051829534,
+      "contentHash": "e0a41531d159d3a32f84b7a3ecf9fabb",
+      "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.6.0 <0.8.0"
+      ],
+      "artifacts": [
+        "IERC20"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/node_modules/@openzeppelin/contracts/math/SafeMath.sol": {
+      "lastModificationDate": 1620051819348,
+      "contentHash": "4d29a22b28b7ec0e89c3cdf1c5e72b83",
+      "sourceName": "@openzeppelin/contracts/math/SafeMath.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.6.0 <0.8.0"
+      ],
+      "artifacts": [
+        "SafeMath"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol": {
+      "lastModificationDate": 1620051829530,
+      "contentHash": "1d93743f6ca9d2ecf9b3c26718faf610",
+      "sourceName": "@openzeppelin/contracts/token/ERC20/ERC20.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../../GSN/Context.sol",
+        "./IERC20.sol",
+        "../../math/SafeMath.sol"
+      ],
+      "versionPragmas": [
+        ">=0.6.0 <0.8.0"
+      ],
+      "artifacts": [
+        "ERC20"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/packages/hardhat/contracts/MockDai.sol": {
+      "lastModificationDate": 1620049869371,
+      "contentHash": "ee92f38bb2ffc4440abb131bf28b5005",
+      "sourceName": "contracts/MockDai.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/ERC20.sol",
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol"
+      ],
+      "versionPragmas": [
+        "^0.6.11"
+      ],
+      "artifacts": [
+        "MintableERC20",
+        "MockDAI"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/packages/hardhat/contracts/EPNSCoreV1.sol": {
+      "lastModificationDate": 1620415916785,
+      "contentHash": "4b4db5df06b4220f559742beadb6be37",
+      "sourceName": "contracts/EPNSCoreV1.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/math/SafeMath.sol",
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "@openzeppelin/contracts/proxy/Initializable.sol",
+        "@openzeppelin/contracts/token/ERC20/SafeERC20.sol",
+        "@openzeppelin/contracts/utils/ReentrancyGuard.sol",
+        "hardhat/console.sol"
+      ],
+      "versionPragmas": [
+        ">=0.6.0 <0.7.0"
+      ],
+      "artifacts": [
+        "EPNSCoreV1",
+        "IEPNSCore",
+        "ILendingPool",
+        "ILendingPoolAddressesProvider"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/node_modules/@openzeppelin/contracts/proxy/Initializable.sol": {
+      "lastModificationDate": 1620051819356,
+      "contentHash": "99bd69d93b6e25a9cdf9c04550e1780f",
+      "sourceName": "@openzeppelin/contracts/proxy/Initializable.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.4.24 <0.8.0"
+      ],
+      "artifacts": [
+        "Initializable"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol": {
+      "lastModificationDate": 1620051819355,
+      "contentHash": "1c60f58cee45c61469e1aea31e4dd879",
+      "sourceName": "@openzeppelin/contracts/utils/ReentrancyGuard.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.6.0 <0.8.0"
+      ],
+      "artifacts": [
+        "ReentrancyGuard"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/node_modules/hardhat/console.sol": {
+      "lastModificationDate": 1620051814846,
+      "contentHash": "cc4777addd464ea56fa35b1c45df0591",
+      "sourceName": "hardhat/console.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.4.22 <0.9.0"
+      ],
+      "artifacts": [
+        "console"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/packages/hardhat/contracts/EPNSCoreV2.sol": {
+      "lastModificationDate": 1620049869371,
+      "contentHash": "1beafd09e9261683f81a28f811c5cf36",
+      "sourceName": "contracts/EPNSCoreV2.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./EPNSCoreV1.sol",
+        "hardhat/console.sol",
+        "./VerzionedInitializable.sol"
+      ],
+      "versionPragmas": [
+        ">=0.6.0 <0.7.0"
+      ],
+      "artifacts": [
+        "EPNSCoreV2"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/packages/hardhat/contracts/VerzionedInitializable.sol": {
+      "lastModificationDate": 1620049869371,
+      "contentHash": "8d88d014b6c3607d9718f1eda5a395d4",
+      "sourceName": "contracts/VerzionedInitializable.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.6.0 <0.7.0"
+      ],
+      "artifacts": [
+        "VersionedInitializable"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/packages/hardhat/contracts/EPNSCoreV3.sol": {
+      "lastModificationDate": 1620049869371,
+      "contentHash": "faef49549d5e81f8de8f55dfef83043b",
+      "sourceName": "contracts/EPNSCoreV3.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./EPNSCoreV2.sol",
+        "hardhat/console.sol",
+        "./VerzionedInitializable.sol"
+      ],
+      "versionPragmas": [
+        ">=0.6.0 <0.7.0"
+      ],
+      "artifacts": [
+        "EPNSCoreV3"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/packages/hardhat/contracts/GovernorAlpha.sol": {
+      "lastModificationDate": 1620049869371,
+      "contentHash": "d544d9056824d99f9c4d80617a528d3e",
+      "sourceName": "contracts/GovernorAlpha.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.6.0 <0.7.0"
+      ],
+      "artifacts": [
+        "EPNSInterface",
+        "GovernorAlpha",
+        "TimelockInterface"
+      ]
+    },
+    "/home/manjain/Documents/epns/epns-protocol/packages/hardhat/contracts/Timelock.sol": {
+      "lastModificationDate": 1620049869371,
+      "contentHash": "8ed9ed69d8e3963be69376ea1adb8f08",
+      "sourceName": "contracts/Timelock.sol",
+      "solcConfig": {
+        "version": "0.6.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.6.0 <0.7.0"
+      ],
+      "artifacts": [
+        "SafeMath",
+        "Timelock"
+      ]
+    }
+  }
+}
