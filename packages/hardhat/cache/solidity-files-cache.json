@@ -538,7 +538,7 @@
       ]
     },
     "/home/manjain/Documents/epns/epns-protocol/packages/hardhat/contracts/EPNSCoreV1.sol": {
-      "lastModificationDate": 1620415916785,
+      "lastModificationDate": 1620775713248,
       "contentHash": "4b4db5df06b4220f559742beadb6be37",
       "sourceName": "contracts/EPNSCoreV1.sol",
       "solcConfig": {
