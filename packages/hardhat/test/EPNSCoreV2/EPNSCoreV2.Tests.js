@@ -20,7 +20,7 @@ describe("EPNSCoreV2 tests", function () {
   const referralCode = 0;
   const ADD_CHANNEL_MIN_POOL_CONTRIBUTION = tokensBN(50)
   const ADD_CHANNEL_MAX_POOL_CONTRIBUTION = tokensBN(250000 * 50)
-  const DELEGATED_CONTRACT_FEES = bn(2).mul(10).pow(17);
+  const DELEGATED_CONTRACT_FEES = ethers.utils.parseEther("0.1");
   const ADJUST_FOR_FLOAT = bn(10 ** 7)
   const delay = 0; // uint for the timelock delay
 
@@ -120,9 +120,8 @@ describe("EPNSCoreV2 tests", function () {
     EPNSCoreV2Proxy = null
   });
 
-//   it("should return updated DELEGATED_CONTRACT_FEES", async function(){
-//     const delegatedContractFees = await EPNSCoreV2Proxy.DELEGATED_CONTRACT_FEES();
-
-//     expect(delegatedContractFees).to.equal(DELEGATED_CONTRACT_FEES);
-//   });
+  // it("should return correct version number", async function(){
+  //   const revision = await EPNSCoreV2Proxy.getRevision();
+  //   expect(revision).to.equal(bn(2));
+  // });
 });

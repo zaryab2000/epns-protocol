@@ -3,7 +3,8 @@ const fs = require("fs");
 
 require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-etherscan");
-require('hardhat-ethernal');
+require("@nomiclabs/hardhat-ethers");
+require("hardhat-gas-reporter");
 
 const { isAddress, getAddress, formatUnits, parseUnits } = utils;
 
