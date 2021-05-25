@@ -124,6 +124,8 @@ contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
         // The historical constant that is applied with (wnx0 + wnx1 + .... + wnxZ)
         // Read more in the repo: https://github.com/ethereum-push-notification-system
         mapping(address => uint) memberLastUpdate;
+        //delegation
+        mapping(address => bool) delegates;
     }
 
     /* Create for testnet strict owner only channel whitelist
@@ -204,8 +206,9 @@ contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
     // Withdrawl Related
     event Donation(address indexed donator, uint amt);
     event Withdrawal(address indexed to, address token, uint amount);
-
-
+    // Notification Delegation Event
+    event AddDelegate(address channel, address delegate);
+    event RemoveDelegate(address channel, address delegate);
 //    function getRevision() internal override pure returns (uint256) {
 //        return 1;
 //    }
@@ -346,6 +349,11 @@ contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
         _;
     }
 
+    modifier onlyDelegates(address _notificationSender, address _channel) {
+        require(channels[_channel].delegates[_notificationSender] == true, "Not authorised to send messages");
+        _;
+    }
+
     function transferGovernance(address _newGovernance) onlyGov public {
         require (_newGovernance != address(0), "EPNSCore::transferGovernance, new governance can't be none");
         require (_newGovernance != governance, "EPNSCore::transferGovernance, new governance can't be current governance");
@@ -360,6 +368,18 @@ contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
     /// @dev Testnet only function  to enable owner permission for channelizationWhitelist removal
     function removeFromChannelizationWhitelist(address _addr) external onlyGov {
         channelizationWhitelist[_addr] = false;
+    }
+
+
+    /// @dev allow other addresses to send notifications using your channel
+    function addDelegate(address _delegate) external onlyChannelOwner(msg.sender) {
+        channels[msg.sender].delegates[_delegate] = true;
+        emit AddDelegate(msg.sender, _delegate);
+    }
+    /// @dev revoke addresses' permission to send notifications on your behalf
+    function removeDelegate(address _delegate) external onlyChannelOwner(msg.sender) {
+        channels[msg.sender].delegates[_delegate] = false;
+        emit RemoveDelegate(msg.sender, _delegate);
     }
 
     /// @dev Performs action by the user themself to broadcast their public key
@@ -620,11 +640,11 @@ contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
     }
 
     /// @dev to send message to reciepient of a group
-    function sendNotificationOverrideChannel(
+    function sendDelegatedNotification(
         address _channel,
         address _recipient,
         bytes calldata _identity
-    ) external onlyChannelOwner(msg.sender) onlyGov {
+    ) external onlyDelegates(msg.sender, _channel){
         // Emit the message out
         emit SendNotification(_channel, _recipient, _identity);
     }
