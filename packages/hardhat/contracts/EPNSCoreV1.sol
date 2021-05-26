@@ -144,6 +144,9 @@ contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
     mapping(address => uint) public usersInterestClaimed;
     mapping(address => uint) public usersInterestInWallet;
 
+    // Delegated Notifications: Mapping to keep track of addresses allowed to send notifications on Behalf of a Channel
+    mapping(address => mapping (address => bool)) public delegated_NotificationSenders;
+
 
     /**
         Address Lists
@@ -204,7 +207,10 @@ contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
     // Withdrawl Related
     event Donation(address indexed donator, uint amt);
     event Withdrawal(address indexed to, address token, uint amount);
-
+    
+    
+    event AddDelegate(address channel, address delegate);
+    event RemoveDelegate(address channel, address delegate);
 
 //    function getRevision() internal override pure returns (uint256) {
 //        return 1;
@@ -344,6 +350,22 @@ contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
     modifier onlyNonGraylistedChannel(address _channel, address _user) {
         require(users[_user].graylistedChannels[_channel] == false, "Channel is graylisted");
         _;
+    }
+
+    modifier onlyAllowedDelegates(address _channel, address _notificationSender) {
+        require(delegated_NotificationSenders[_channel][_notificationSender], "Not authorised to send messages");
+        _;
+    }
+
+    /// @dev allow other addresses to send notifications using your channel
+    function addDelegate(address _delegate) external onlyChannelOwner(msg.sender) {        
+        delegated_NotificationSenders[msg.sender][_delegate] = true;
+        emit AddDelegate(msg.sender, _delegate);
+    }
+    /// @dev revoke addresses' permission to send notifications on your behalf
+    function removeDelegate(address _delegate) external onlyChannelOwner(msg.sender) {
+        delegated_NotificationSenders[msg.sender][_delegate] = false;
+        emit RemoveDelegate(msg.sender, _delegate);
     }
 
     function transferGovernance(address _newGovernance) onlyGov public {
@@ -619,12 +641,12 @@ contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
         emit SendNotification(msg.sender, _recipient, _identity);
     }
 
-    /// @dev to send message to reciepient of a group
-    function sendNotificationOverrideChannel(
+      /// @dev to send message to reciepient of a group
+    function sendNotificationAsDelegate(
         address _channel,
         address _recipient,
         bytes calldata _identity
-    ) external onlyChannelOwner(msg.sender) onlyGov {
+    ) external onlyAllowedDelegates(_channel,msg.sender){
         // Emit the message out
         emit SendNotification(_channel, _recipient, _identity);
     }
