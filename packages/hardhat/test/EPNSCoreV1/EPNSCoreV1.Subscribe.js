@@ -143,13 +143,13 @@ describe("EPNSCoreV1 tests", function () {
         await expect(tx).to.be.revertedWith("Channel deactivated or doesn't exists");
       });
 
-      it("should revert subscribe if channels are graylisted", async function () {
-        await EPNSCoreV1Proxy.connect(BOBSIGNER).subscribe(CHANNEL_CREATOR);
-        await EPNSCoreV1Proxy.connect(BOBSIGNER).unsubscribe(CHANNEL_CREATOR);
+      // it("should revert subscribe if channels are graylisted", async function () {
+      //   await EPNSCoreV1Proxy.connect(BOBSIGNER).subscribe(CHANNEL_CREATOR);
+      //   await EPNSCoreV1Proxy.connect(BOBSIGNER).unsubscribe(CHANNEL_CREATOR);
         
-        const tx = EPNSCoreV1Proxy.connect(CHANNEL_CREATORSIGNER).subscribeDelegated(CHANNEL_CREATOR, BOB);
-        await expect(tx).to.be.revertedWith("Channel is graylisted");
-      });
+      //   const tx = EPNSCoreV1Proxy.connect(CHANNEL_CREATORSIGNER).subscribeDelegated(CHANNEL_CREATOR, BOB);
+      //   await expect(tx).to.be.revertedWith("Channel is graylisted");
+      // });
 
       // it("should deduct delegation fees from user wallet", async function () {
       //   const channelCreatorDAIBalanceBefore = await MOCKDAI.balanceOf(CHANNEL_CREATOR);
@@ -299,14 +299,14 @@ describe("EPNSCoreV1 tests", function () {
       //   expect(ownerDaiFundsAfter).to.equal(ownerDaiFundsBefore.add(DELEGATED_CONTRACT_FEES));
       // });
 
-      it("should revert if already subscribed", async function () {
-        await EPNSCoreV1Proxy.connect(BOBSIGNER).subscribe(CHANNEL_CREATOR);
-        const publicKey = await getPubKey(CHANNEL_CREATORSIGNER)
+      // it("should revert if already subscribed", async function () {
+      //   await EPNSCoreV1Proxy.connect(BOBSIGNER).subscribe(CHANNEL_CREATOR);
+      //   const publicKey = await getPubKey(CHANNEL_CREATORSIGNER)
         
-        const tx = EPNSCoreV1Proxy.connect(CHANNEL_CREATORSIGNER).subscribeWithPublicKeyDelegated(CHANNEL_CREATOR, BOB, publicKey.slice(1));
+      //   const tx = EPNSCoreV1Proxy.connect(CHANNEL_CREATORSIGNER).subscribeWithPublicKeyDelegated(CHANNEL_CREATOR, BOB, publicKey.slice(1));
         
-        await expect(tx).to.be.revertedWith("Subscriber already Exists");
-      });
+      //   await expect(tx).to.be.revertedWith("Subscriber already Exists");
+      // });
 
       it("Should add user to epns contract when subscribing if new user", async function(){
         const usersCountBefore = await EPNSCoreV1Proxy.usersCount()

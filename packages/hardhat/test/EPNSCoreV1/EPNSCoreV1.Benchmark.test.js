@@ -37,7 +37,7 @@ describe("Benchmaking Contracts", async function () {
         args: [owner.address, AAVE_LENDING_POOL, DAI, ADAI, referralCode],
         functions: [
           {
-            call: `addToChannelizationWhitelist('${charles.address}')`,
+            call: `addDelegate('${charles.address}')`,
             from: owner.address
           },
           {

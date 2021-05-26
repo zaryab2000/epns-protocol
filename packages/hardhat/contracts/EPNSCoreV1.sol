@@ -372,7 +372,7 @@ contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
 
 
     /// @dev allow other addresses to send notifications using your channel
-    function addDelegate(address _delegate) external onlyChannelOwner(msg.sender) {
+    function addDelegate(address _delegate) external onlyChannelOwner(msg.sender) {        
         channels[msg.sender].delegates[_delegate] = true;
         emit AddDelegate(msg.sender, _delegate);
     }
@@ -640,7 +640,7 @@ contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
     }
 
     /// @dev to send message to reciepient of a group
-    function sendDelegatedNotification(
+    function sendNotificationAsDelegate(
         address _channel,
         address _recipient,
         bytes calldata _identity
@@ -672,6 +672,11 @@ contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
         emit Withdrawal(msg.sender, daiAddress, bal);
     }
 
+        // @dev Checks whether or not a particular address is allowed to send Delegated Notification on behalf of a channel
+    function checkDelegateNotificationPermison(address _channel, address _delegate) external view returns(bool allowed){
+        allowed = channels[_channel].delegates[_delegate];
+    }
+
     /// @dev To check if member exists
     function memberExists(address _user, address _channel) external view returns (bool subscribed) {
         subscribed = channels[_channel].memberExists[_user];
@@ -686,6 +691,7 @@ contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
     function getChannelSubscriberUserID(address _channel, uint _subscriberId) external view returns (uint userId) {
         userId = channels[_channel].members[channels[_channel].mapAddressMember[_subscriberId]];
     }
+    
 
     /// @dev donate functionality for the smart contract
     function donate() public payable {
