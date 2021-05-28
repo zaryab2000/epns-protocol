@@ -182,7 +182,7 @@ describe("EPNSCoreV1 tests", function () {
           const userSubscribeCount_before = userDetails[4];
           const channelMemberCount_before = channelDetails[3];
 
-          await EPNSCoreV1Proxy.connect(BOBSIGNER).subscribe(CHANNEL_CREATOR);
+          const tx =  await EPNSCoreV1Proxy.connect(BOBSIGNER).subscribe(CHANNEL_CREATOR);
 
           const userDetails_after = await EPNSCoreV1Proxy.users(BOB);
           const channelDetails_after = await EPNSCoreV1Proxy.channels(CHANNEL_CREATOR);
@@ -196,15 +196,118 @@ describe("EPNSCoreV1 tests", function () {
           expect(userSubscribeCount_after).to.equal(1);
           expect(channelMemberCount_before).to.equal(1);
           expect(channelMemberCount_after).to.equal(2);
+          await expect(tx).to.emit(EPNSCoreV1Proxy,'Subscribe')
+          .withArgs(CHANNEL_CREATOR,BOB)
       })
 
 
       it("Should update the FAIR SHARE RATIO", async ()=>{
   
       })
+    });
+   
+   /**
+     * "subscribeDelegated" Function CHECKPOINTS
+     * Should only be called for Activated Channels
+     * Should only be called for NonGraylistedChannel Channels
+     * Should Charge DELEGATED_CONTRACT_FEES amount from the Channel_Creator
+     * Should add the charged DELEGATED_CONTRACT_FEES to the Owner's DAI Funds
+     * Should  execute Subscribe Function and EMit events as expected
+     */
+    describe("Testing the subscribeDelegated function", function(){
+      const CHANNEL_TYPE = 2;
+      const testChannel = ethers.utils.toUtf8Bytes("test-channel-hello-world");
+  
+      beforeEach(async function(){
+        await EPNSCoreV1Proxy.connect(ADMINSIGNER).addToChannelizationWhitelist(CHANNEL_CREATOR, {gasLimit: 500000});
+      
+        await MOCKDAI.connect(CHANNEL_CREATORSIGNER).mint(ADD_CHANNEL_MIN_POOL_CONTRIBUTION);
+        await MOCKDAI.connect(CHANNEL_CREATORSIGNER).approve(EPNSCoreV1Proxy.address, ADD_CHANNEL_MIN_POOL_CONTRIBUTION);
+        await EPNSCoreV1Proxy.connect(CHANNEL_CREATORSIGNER).createChannelWithFees(CHANNEL_TYPE, testChannel, {gasLimit: 2000000});
+
+        await MOCKDAI.connect(CHANNEL_CREATORSIGNER).mint(DELEGATED_CONTRACT_FEES);
+        await MOCKDAI.connect(CHANNEL_CREATORSIGNER).approve(EPNSCoreV1Proxy.address, DELEGATED_CONTRACT_FEES);
+      })
+  
+      it("Function should  revert subscribe if channels are deactivated", async function () {
+        await EPNSCoreV1Proxy.connect(CHANNEL_CREATORSIGNER).deactivateChannel();
+        
+        const tx = EPNSCoreV1Proxy.connect(CHANNEL_CREATORSIGNER).subscribeDelegated(CHANNEL_CREATOR, BOB);
+        await expect(tx).to.be.revertedWith("Channel deactivated or doesn't exists");
+      });
+
+      // it("should revert subscribe if channels are graylisted", async function () {
+      //   await EPNSCoreV1Proxy.connect(BOBSIGNER).subscribe(CHANNEL_CREATOR);
+      //   await EPNSCoreV1Proxy.connect(BOBSIGNER).unsubscribe(CHANNEL_CREATOR);
+        
+      //   const tx = EPNSCoreV1Proxy.connect(CHANNEL_CREATORSIGNER).subscribeDelegated(CHANNEL_CREATOR, BOB);
+      //   await expect(tx).to.be.revertedWith("Channel is graylisted");
+      // });
+
+      it("Function should deduct delegation fees from user wallet", async function () {
+        const channelCreatorDAIBalanceBefore = await MOCKDAI.balanceOf(CHANNEL_CREATOR);
+  
+        const ownerDaiFundsBefore = await EPNSCoreV1Proxy.ownerDaiFunds();
+
+        await EPNSCoreV1Proxy.connect(CHANNEL_CREATORSIGNER).subscribeDelegated(CHANNEL_CREATOR, BOB);
+        
+        const userSubscribed = await EPNSCoreV1Proxy.memberExists(BOB, CHANNEL_CREATOR);
+        expect(userSubscribed).to.equal(true);
+
+        const channelCreatorDAIBalanceAfter = await MOCKDAI.balanceOf(CHANNEL_CREATOR);
+  
+  
+        const ownerDaiFundsAfter = await EPNSCoreV1Proxy.ownerDaiFunds();
+  
+
+        expect(channelCreatorDAIBalanceAfter).to.equal(channelCreatorDAIBalanceBefore.sub(DELEGATED_CONTRACT_FEES));
+        expect(ownerDaiFundsAfter).to.equal(ownerDaiFundsBefore.add(DELEGATED_CONTRACT_FEES));
+      });
+
+      it("should revert if already subscribed", async function () {
+        await EPNSCoreV1Proxy.connect(BOBSIGNER).subscribe(CHANNEL_CREATOR);
+        const tx = EPNSCoreV1Proxy.connect(CHANNEL_CREATORSIGNER).subscribeDelegated(CHANNEL_CREATOR, BOB);
+        
+        await expect(tx).to.be.revertedWith("Subscriber already Exists");
+      });
 
 
+      it("should subscribe and update fair share values", async function(){
+        const channel = await EPNSCoreV1Proxy.channels(CHANNEL_CREATOR);
 
-    })
+        const _channelFairShareCount = channel.channelFairShareCount;
+        const _channelHistoricalZ = channel.channelHistoricalZ;
+        const _channelLastUpdate = channel.channelLastUpdate;
+        
+        const tx = await EPNSCoreV1Proxy.connect(CHANNEL_CREATORSIGNER).subscribeDelegated(CHANNEL_CREATOR, BOB);
+        const blockNumber = tx.blockNumber;
+        
+        const { 
+          channelNewFairShareCount, 
+          channelNewHistoricalZ, 
+          channelNewLastUpdate, 
+        } = readjustFairShareOfSubscribers(SubscriberAction.SubscriberAdded, _channelFairShareCount, _channelHistoricalZ, _channelLastUpdate, bn(blockNumber));
+        
+        const channelNew = await EPNSCoreV1Proxy.channels(CHANNEL_CREATOR);
+
+        const _channelNewFairShareCountNew = channelNew.channelFairShareCount;
+        const _channelHistoricalZNew = channelNew.channelHistoricalZ;
+        const _channelLastUpdateNew = channelNew.channelLastUpdate;
+        
+        expect(_channelNewFairShareCountNew).to.equal(channelNewFairShareCount);
+        expect(_channelHistoricalZNew).to.equal(channelNewHistoricalZ);
+        expect(_channelLastUpdateNew).to.equal(channelNewLastUpdate);
+      });
+
+      it("should subscribe and emit Subscribe event", async function () {
+        const tx = await EPNSCoreV1Proxy.connect(CHANNEL_CREATORSIGNER).subscribeDelegated(CHANNEL_CREATOR, BOB);
+
+        await expect(tx)
+          .to.emit(EPNSCoreV1Proxy, 'Subscribe')
+          .withArgs(CHANNEL_CREATOR, BOB)
+      });
+    });
+
+
   });
 });
