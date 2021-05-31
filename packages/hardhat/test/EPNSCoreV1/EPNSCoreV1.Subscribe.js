@@ -257,6 +257,14 @@ describe("EPNSCoreV1 tests", function () {
         expect(isMemberExists).to.be.equals(false);
         await expect(tx).to.be.revertedWith("Either Channel Owner or Not Subscribed");
       })
+     it("Function should emit the Unsubscribe event", async function () {
+        await EPNSCoreV1Proxy.connect(BOBSIGNER).subscribe(CHANNEL_CREATOR);
+        const tx = EPNSCoreV1Proxy.connect(BOBSIGNER).unsubscribe(CHANNEL_CREATOR);
+
+        await expect(tx)
+          .to.emit(EPNSCoreV1Proxy, 'Unsubscribe')
+          .withArgs(CHANNEL_CREATOR, BOB)
+      });
 
       it("Should mark Channel as GRAY LISTED for User",async()=>{
           await EPNSCoreV1Proxy.connect(BOBSIGNER).subscribe(CHANNEL_CREATOR);
@@ -273,6 +281,68 @@ describe("EPNSCoreV1 tests", function () {
      
 
       }).timeout(12000);
+
+      it(" Should Update Imperative On-Chain Information for User",async()=>{
+        await EPNSCoreV1Proxy.connect(BOBSIGNER).subscribe(CHANNEL_CREATOR);
+        
+        // Contract State Before Unsubscribing
+        const isMemberExists_before = await EPNSCoreV1Proxy.memberExists(BOB,CHANNEL_CREATOR);
+        const userBefore = await EPNSCoreV1Proxy.users(BOB);
+        const channelBefore = await EPNSCoreV1Proxy.channels(CHANNEL_CREATOR);
+       
+        await EPNSCoreV1Proxy.connect(BOBSIGNER).unsubscribe(CHANNEL_CREATOR);
+                
+        // Contract State After Unsubscribing
+
+        const userAfter = await EPNSCoreV1Proxy.users(BOB);
+        const channelAfter = await EPNSCoreV1Proxy.channels(CHANNEL_CREATOR);
+        const isMemberExists_after = await EPNSCoreV1Proxy.memberExists(BOB,CHANNEL_CREATOR);
+        
+        await expect(isMemberExists_before).to.be.equals(true)
+        await expect(isMemberExists_after).to.be.equals(false)
+        expect(userAfter.subscribedCount).to.equal(userBefore.subscribedCount.sub(1))
+        expect(channelAfter.memberCount).to.equal(channelBefore.memberCount.sub(1))      
+
+      }).timeout(200000);
+
+      it("Should subscribe and update fair share values", async function(){
+        const publicKey = await getPubKey(BOBSIGNER);
+        await EPNSCoreV1Proxy.connect(BOBSIGNER).subscribeWithPublicKey(CHANNEL_CREATOR, publicKey.slice(1));
+        const channel = await EPNSCoreV1Proxy.channels(CHANNEL_CREATOR);
+
+        const _channelFairShareCount = channel.channelFairShareCount;
+        const _channelHistoricalZ = channel.channelHistoricalZ;
+        const _channelLastUpdate = channel.channelLastUpdate;
+      
+        const tx = await EPNSCoreV1Proxy.connect(BOBSIGNER).unsubscribe(CHANNEL_CREATOR);
+        const blockNumber = tx.blockNumber;
+        
+        const { 
+          channelNewFairShareCount, 
+          channelNewHistoricalZ, 
+          channelNewLastUpdate, 
+        } = readjustFairShareOfSubscribers(SubscriberAction.SubscriberRemoved, _channelFairShareCount, _channelHistoricalZ, _channelLastUpdate, bn(blockNumber));
+        
+        const channelNew = await EPNSCoreV1Proxy.channels(CHANNEL_CREATOR);
+
+        const _channelNewFairShareCountNew = channelNew.channelFairShareCount;
+        const _channelHistoricalZNew = channelNew.channelHistoricalZ;
+        const _channelLastUpdateNew = channelNew.channelLastUpdate;
+        
+        expect(_channelNewFairShareCountNew).to.equal(channelNewFairShareCount);
+        expect(_channelHistoricalZNew).to.equal(channelNewHistoricalZ);
+        expect(_channelLastUpdateNew).to.equal(channelNewLastUpdate);
+      }).timeout(200000);
+
+      // it("Withdrawl of Funds from the POOL Should work as expected", async function () {
+      //   const num = tokensBN(10)
+      //   const tx = EPNSCoreV1Proxy.connect(BOBSIGNER)._withdrawFundsFromPool(num);
+
+      //   await expect(tx)
+      //     .to.emit(EPNSCoreV1Proxy, 'Unsubscribe')
+      //     .withArgs(CHANNEL_CREATOR, BOB)
+      // })
+
 
     });
 
