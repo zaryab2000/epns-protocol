@@ -130,7 +130,7 @@ describe("EPNSCoreV1 tests", function () {
      * Should update User's Subscription details in the contract
      * Should update the Channel's Subscription Details in the contract
      * Should update the FAIRSHARE COUNTS
-     */
+    //  */
     describe("Testing the Base SUBSCRIBE Function", function(){ 
       const CHANNEL_TYPE = 2;
       const testChannel = ethers.utils.toUtf8Bytes("test-channel-hello-world");
@@ -205,7 +205,78 @@ describe("EPNSCoreV1 tests", function () {
   
       })
     });
-   
+
+
+   /**
+     * "unsubscribe" Function CHECKPOINTS
+     * Should only be called for Valid Channels -> users[_channel].channellized == true
+     * Should Not be executable for the Channel OWNER
+     * Should Not be executable for a Non Subscribed User
+     * Should mark Channel as GRAY LISTED for User
+     * Should Update Relevant Information on Chain for User
+     * Should Update Relevant Information on Chain for Channel
+     * The Withdrawal of Funds from POOL should execute as expected
+     * Should calculate FAIR SHARE RATION as expected
+     * Should  execute Subscribe Function and EMit events as expected
+     */
+    describe("Testing the unsubscribe function", function(){
+      const CHANNEL_TYPE = 2;
+      const testChannel = ethers.utils.toUtf8Bytes("test-channel-hello-world");
+  
+      beforeEach(async function(){
+        await EPNSCoreV1Proxy.connect(ADMINSIGNER).addToChannelizationWhitelist(CHANNEL_CREATOR, {gasLimit: 500000});
+      
+        await MOCKDAI.connect(CHANNEL_CREATORSIGNER).mint(ADD_CHANNEL_MIN_POOL_CONTRIBUTION);
+        await MOCKDAI.connect(CHANNEL_CREATORSIGNER).approve(EPNSCoreV1Proxy.address, ADD_CHANNEL_MIN_POOL_CONTRIBUTION);
+        await EPNSCoreV1Proxy.connect(CHANNEL_CREATORSIGNER).createChannelWithFees(CHANNEL_TYPE, testChannel, {gasLimit: 2000000});
+
+        await MOCKDAI.connect(CHANNEL_CREATORSIGNER).mint(DELEGATED_CONTRACT_FEES);
+        await MOCKDAI.connect(CHANNEL_CREATORSIGNER).approve(EPNSCoreV1Proxy.address, DELEGATED_CONTRACT_FEES);
+      })
+
+      it("Function should only be accessibly for VALID Channels", async()=>{
+        // Check if Channalized is True
+        const userDetails = await EPNSCoreV1Proxy.users(BOB);
+        const isChannnalized = userDetails[2];
+        const tx = EPNSCoreV1Proxy.connect(BOBSIGNER).unsubscribe(BOB);
+        
+        await expect(isChannnalized).to.be.equals(false)
+        await expect(tx).to.be.revertedWith("Channel doesn't Exists");
+      })
+
+      it("Channel Owner should NOT be able to unsubscribe their own Channels", async()=>{
+        const tx = EPNSCoreV1Proxy.connect(CHANNEL_CREATORSIGNER).unsubscribe(CHANNEL_CREATOR);
+        await expect(tx).to.be.revertedWith("Either Channel Owner or Not Subscribed");
+      })
+
+      it("Function Should Not be executable for a Non Subscribed User", async() =>{
+        // CHeck if User actually exists as a Subscriber
+        const isMemberExists = await EPNSCoreV1Proxy.memberExists(BOB,CHANNEL_CREATOR);
+        const tx = EPNSCoreV1Proxy.connect(BOBSIGNER).unsubscribe(CHANNEL_CREATOR);
+
+        expect(isMemberExists).to.be.equals(false);
+        await expect(tx).to.be.revertedWith("Either Channel Owner or Not Subscribed");
+      })
+
+      it("Should mark Channel as GRAY LISTED for User",async()=>{
+          await EPNSCoreV1Proxy.connect(BOBSIGNER).subscribe(CHANNEL_CREATOR);
+         // grayListed Mapping before UnSubscribing
+         const isGrayListed_before = await EPNSCoreV1Proxy.getGrayListedChannels(BOB,CHANNEL_CREATOR);
+          
+        await EPNSCoreV1Proxy.connect(BOBSIGNER).unsubscribe(CHANNEL_CREATOR);
+          // grayListed Mapping after UnSubscribing
+         const isGrayListed_after = await EPNSCoreV1Proxy.getGrayListedChannels(BOB,CHANNEL_CREATOR);
+
+
+        await expect(isGrayListed_before).to.be.equals(false)
+        await expect(isGrayListed_after).to.be.equals(true)
+     
+
+      }).timeout(12000);
+
+    });
+
+
    /**
      * "subscribeDelegated" Function CHECKPOINTS
      * Should only be called for Activated Channels
@@ -306,6 +377,31 @@ describe("EPNSCoreV1 tests", function () {
           .to.emit(EPNSCoreV1Proxy, 'Subscribe')
           .withArgs(CHANNEL_CREATOR, BOB)
       });
+    });
+
+    
+   /**
+     * "subscribeWithPublicKey & subscribeWithPublicKeyDelegated" Function CHECKPOINTS
+     * Should only be called for Activated Channels
+     * Should only be called for NonGraylistedChannel Channels
+     * Should Charge DELEGATED_CONTRACT_FEES amount from the Channel_Creator
+     * Should add the charged DELEGATED_CONTRACT_FEES to the Owner's DAI Funds
+     * Should  execute Subscribe Function and EMit events as expected
+     */
+    describe("Testing the unsubscribe function", function(){
+      const CHANNEL_TYPE = 2;
+      const testChannel = ethers.utils.toUtf8Bytes("test-channel-hello-world");
+  
+      beforeEach(async function(){
+        await EPNSCoreV1Proxy.connect(ADMINSIGNER).addToChannelizationWhitelist(CHANNEL_CREATOR, {gasLimit: 500000});
+      
+        await MOCKDAI.connect(CHANNEL_CREATORSIGNER).mint(ADD_CHANNEL_MIN_POOL_CONTRIBUTION);
+        await MOCKDAI.connect(CHANNEL_CREATORSIGNER).approve(EPNSCoreV1Proxy.address, ADD_CHANNEL_MIN_POOL_CONTRIBUTION);
+        await EPNSCoreV1Proxy.connect(CHANNEL_CREATORSIGNER).createChannelWithFees(CHANNEL_TYPE, testChannel, {gasLimit: 2000000});
+
+        await MOCKDAI.connect(CHANNEL_CREATORSIGNER).mint(DELEGATED_CONTRACT_FEES);
+        await MOCKDAI.connect(CHANNEL_CREATORSIGNER).approve(EPNSCoreV1Proxy.address, DELEGATED_CONTRACT_FEES);
+      })
     });
 
 
