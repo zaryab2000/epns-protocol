@@ -306,7 +306,7 @@ contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
     }
 
     modifier onlyValidChannel(address _channel) {
-        require(users[_channel].channellized == true, "Channel doesn't Exists");
+        require(users[_channel].channellized, "Channel doesn't Exists");
         _;
     }
 
@@ -338,7 +338,7 @@ contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
     }
 
     modifier onlyNonOwnerSubscribed(address _channel, address _subscriber) {
-        require(_channel != _subscriber && channels[_channel].memberExists[_subscriber] == true, "Either Channel Owner or Not Subscribed");
+        require(_channel != _subscriber && channels[_channel].memberExists[_subscriber], "Either Channel Owner or Not Subscribed");
         _;
     }
 
@@ -689,6 +689,11 @@ contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
         userId = channels[_channel].members[channels[_channel].mapAddressMember[_subscriberId]];
     }
 
+    function getGrayListedChannels(address _user,address _channel) external view returns(bool isGrayListed){
+        isGrayListed = users[_user].graylistedChannels[_channel];
+    }
+    
+
     /// @dev donate functionality for the smart contract
     function donate() public payable {
         require(msg.value >= 0.001 ether, "Minimum Donation amount is 0.001 ether");
@@ -971,7 +976,7 @@ contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
         IERC20(daiAddress).safeTransferFrom(msg.sender, address(this), DELEGATED_CONTRACT_FEES);
 
         // Add it to owner kitty
-        ownerDaiFunds.add(DELEGATED_CONTRACT_FEES);
+        ownerDaiFunds = ownerDaiFunds.add(DELEGATED_CONTRACT_FEES);
     }
 
     /// @dev deposit funds to pool
