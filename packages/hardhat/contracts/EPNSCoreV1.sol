@@ -333,7 +333,7 @@ contract EPNSCoreV1 is Initializable, ReentrancyGuard  {
     }
 
     modifier onlySubscribed(address _channel, address _subscriber) {
-        require(channels[_channel].memberExists[_subscriber] == true, "Subscriber doesn't Exists");
+        require(channels[_channel].memberExists[_subscriber], "Subscriber doesn't Exists");
         _;
     }
 
